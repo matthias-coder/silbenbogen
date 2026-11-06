@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { randomSyllables } from '../domain/pool';
+import { makeWord } from '../domain/stage';
 import { mulberry32 } from '../testing/rng';
 import { mountReadingScreen } from './readingScreen';
 
@@ -30,6 +31,12 @@ describe('mountReadingScreen', () => {
     up(q('next'));
   };
   const skip = () => hold(2000);
+  /** A real tap: pointerdown, pointerup, then the click the browser generates. */
+  const tap = () => {
+    down(q('next'));
+    up(q('next'));
+    q('next').click();
+  };
   /** Drags every handle of the current item to the end of its arc. */
   const complete = () => {
     const svg = itemEl();
@@ -113,7 +120,7 @@ describe('mountReadingScreen', () => {
     expect(q('next').hasAttribute('aria-disabled')).toBe(false);
     expect(q('next').classList.contains('ready')).toBe(true);
     const before = itemEl();
-    q('next').click();
+    tap();
     expect(itemEl()).not.toBe(before);
     expect(dot(0).classList.contains('on')).toBe(true);
     expect(q('next').classList.contains('locked')).toBe(true);
@@ -130,7 +137,7 @@ describe('mountReadingScreen', () => {
   it('shows the read count after ten tasks and restarts with Nochmal', () => {
     for (let i = 0; i < 3; i++) {
       complete();
-      q('next').click();
+      tap();
     }
     for (let i = 0; i < 7; i++) skip();
     expect(q('done').textContent).toContain('Geschafft!');
@@ -237,9 +244,49 @@ describe('mountReadingScreen', () => {
     });
 
     it('stops listening after unmount', () => {
+      const remove = vi.spyOn(window, 'removeEventListener');
+      const add = vi.spyOn(window, 'addEventListener');
       unmount();
+      unmount = mountReadingScreen(root, { pool: pool(), onOpenParent, rng: mulberry32(1) });
+      const handler = add.mock.calls.find((c) => c[0] === 'resize')![1];
+      unmount();
+      expect(remove).toHaveBeenCalledWith('resize', handler);
       size = { w: 343, h: 660 };
-      expect(() => window.dispatchEvent(new Event('resize'))).not.toThrow();
+      window.dispatchEvent(new Event('resize'));
+      expect(root.childElementCount).toBe(0);
+      remove.mockRestore();
+      add.mockRestore();
+    });
+
+    it('ignores pixel-level resizes but rebuilds on a >5% scale change', () => {
+      size = { w: 343, h: 660 };
+      window.dispatchEvent(new Event('resize'));
+      const built = itemEl();
+      size = { w: 344, h: 660 };
+      window.dispatchEvent(new Event('resize'));
+      expect(itemEl()).toBe(built);
+      size = { w: 343, h: 700 };
+      window.dispatchEvent(new Event('resize'));
+      expect(itemEl()).toBe(built);
+      size = { w: 700, h: 660 };
+      window.dispatchEvent(new Event('resize'));
+      expect(itemEl()).not.toBe(built);
+    });
+
+    it('rebuilds when the layout mode flips between row and stack', () => {
+      unmount();
+      unmount = mountReadingScreen(root, { pool: [makeWord('Kro-ko-dil')], onOpenParent, rng: mulberry32(1) });
+      size = { w: 1184, h: 600 };
+      window.dispatchEvent(new Event('resize'));
+      expect(itemEl().getAttribute('viewBox')).toBe('0 0 1210 330');
+      const row = itemEl();
+      size = { w: 1190, h: 600 };
+      window.dispatchEvent(new Event('resize'));
+      expect(itemEl()).toBe(row);
+      size = { w: 343, h: 660 };
+      window.dispatchEvent(new Event('resize'));
+      expect(itemEl()).not.toBe(row);
+      expect(itemEl().getAttribute('viewBox')).toBe('0 0 442 930');
     });
 
     it('uses a ResizeObserver when available and disconnects it on unmount', () => {
@@ -260,5 +307,47 @@ describe('mountReadingScreen', () => {
       unmount();
       expect(disconnect).toHaveBeenCalledTimes(1);
     });
+
+    it('cancels a running skip hold when the item is rebuilt', () => {
+      const before = itemEl();
+      down(q('next'));
+      vi.advanceTimersByTime(1000);
+      size = { w: 343, h: 660 };
+      window.dispatchEvent(new Event('resize'));
+      expect(q('next').classList.contains('holding')).toBe(false);
+      const rebuilt = itemEl();
+      expect(rebuilt).not.toBe(before);
+      vi.advanceTimersByTime(5000);
+      expect(itemEl()).toBe(rebuilt);
+      expect(dot(0).classList.contains('skipped')).toBe(false);
+    });
+  });
+
+  it('cancels the hold when the item completes during it, and the release click does not advance', () => {
+    const before = itemEl();
+    down(q('next'));
+    vi.advanceTimersByTime(500);
+    complete();
+    expect(q('next').classList.contains('holding')).toBe(false);
+    vi.advanceTimersByTime(5000);
+    expect(itemEl()).toBe(before);
+    up(q('next'));
+    q('next').click();
+    expect(itemEl()).toBe(before);
+    expect(q('next').classList.contains('ready')).toBe(true);
+    tap();
+    expect(itemEl()).not.toBe(before);
+    expect(dot(0).classList.contains('on')).toBe(true);
+  });
+
+  it('clears the notice timer on unmount', () => {
+    unmount();
+    unmount = mountReadingScreen(root, { pool: pool(), onOpenParent, notice: 'Gespeichert: 25 Silben' });
+    const clear = vi.spyOn(globalThis, 'clearTimeout');
+    unmount();
+    expect(clear).toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+    expect(() => vi.advanceTimersByTime(5000)).not.toThrow();
+    clear.mockRestore();
   });
 });

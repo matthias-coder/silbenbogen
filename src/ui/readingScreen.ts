@@ -1,12 +1,20 @@
 import { buildRound } from '../domain/round';
 import type { Item } from '../domain/types';
 import { attachLongPress } from './longPress';
+import { chooseLayoutMode, fitScale, layoutItem } from './arc';
 import { createItemView } from './itemView';
 
 const ROUND_SIZE = 10;
 const PARENT_PRESS_MS = 3000;
 const SKIP_PRESS_MS = 2000;
 const NOTICE_MS = 2500;
+const RESIZE_TOLERANCE = 0.05;
+
+function measure(el: Element): { width: number; height: number } | undefined {
+  return el.clientWidth > 0 && el.clientHeight > 0
+    ? { width: el.clientWidth, height: el.clientHeight }
+    : undefined;
+}
 
 type Result = 'read' | 'skipped';
 
@@ -46,11 +54,13 @@ export function mountReadingScreen(
   }
   root.replaceChildren(screen);
 
-  let detachNext = () => {};
+  let detachNext: ReturnType<typeof attachLongPress> | null = null;
+  const cancelHold = () => detachNext?.cancel();
+  let pressedWhileLocked = false;
   let stopWatching = () => {};
   const unmount = () => {
     detachGear();
-    detachNext();
+    detachNext?.();
     stopWatching();
     clearTimeout(noticeTimer);
     view?.destroy();
@@ -85,6 +95,7 @@ export function mountReadingScreen(
     next.setAttribute('aria-disabled', 'true');
   };
   const unlock = () => {
+    cancelHold();
     next.classList.remove('locked', 'holding');
     next.removeAttribute('aria-disabled');
     next.classList.add('ready');
@@ -98,23 +109,34 @@ export function mountReadingScreen(
 
   function showItem(): void {
     clearStage();
+    cancelHold();
     next.hidden = false;
     lock();
     const holder = h('div', 'item', 'item');
     stage.appendChild(holder);
-    fitW = holder.clientWidth;
-    fitH = holder.clientHeight;
-    const fit = fitW > 0 && fitH > 0 ? { width: fitW, height: fitH } : undefined;
+    const fit = measure(holder);
+    builtFit = null;
+    if (fit) {
+      const syl = round[index].syllables;
+      const mode = chooseLayoutMode(syl, fit.width, fit.height);
+      builtFit = { mode, scale: fitScale(layoutItem(syl, mode), fit.width, fit.height) };
+    }
     view = createItemView(round[index], unlock, fit);
     holder.appendChild(view.el);
   }
 
-  let fitW = 0;
-  let fitH = 0;
+  let builtFit: { mode: string; scale: number } | null = null;
   const onStageResize = () => {
     const holder = stage.firstElementChild;
     if (!view || !holder) return;
-    if (holder.clientWidth === fitW && holder.clientHeight === fitH) return;
+    const fit = measure(holder);
+    if (!fit && !builtFit) return;
+    if (fit && builtFit) {
+      const syl = round[index].syllables;
+      const mode = chooseLayoutMode(syl, fit.width, fit.height);
+      const scale = fitScale(layoutItem(syl, mode), fit.width, fit.height);
+      if (mode === builtFit.mode && Math.abs(scale / builtFit.scale - 1) <= RESIZE_TOLERANCE) return;
+    }
     showItem();
   };
   if (typeof ResizeObserver !== 'undefined') {
@@ -158,8 +180,13 @@ export function mountReadingScreen(
     else showItem();
   }
 
+  next.addEventListener('pointerdown', () => {
+    pressedWhileLocked = isLocked();
+  });
   next.addEventListener('click', () => {
-    if (!isLocked()) advance('read');
+    const fromLockedPress = pressedWhileLocked;
+    pressedWhileLocked = false;
+    if (!fromLockedPress && !isLocked()) advance('read');
   });
   detachNext = attachLongPress(next, SKIP_PRESS_MS, () => {
     if (isLocked()) advance('skipped');

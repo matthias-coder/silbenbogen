@@ -1,7 +1,7 @@
 export interface LongPressHooks { onStart?: () => void; onEnd?: () => void; }
 
 /**
- * Calls `onLongPress` after the pointer was held on `el` for `ms`; returns a detach function.
+ * Calls `onLongPress` after the pointer was held on `el` for `ms`; returns a detach function with a `cancel()` method that aborts a running hold.
  * `hooks.onStart` fires when a hold begins, `hooks.onEnd` once when it ends for any reason.
  */
 export function attachLongPress(
@@ -9,7 +9,7 @@ export function attachLongPress(
   ms: number,
   onLongPress: () => void,
   hooks?: LongPressHooks,
-): () => void {
+): (() => void) & { cancel: () => void } {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let holding = false;
   const end = () => {
@@ -35,9 +35,10 @@ export function attachLongPress(
   const cancelEvents = ['pointerup', 'pointercancel', 'pointerleave'] as const;
   el.addEventListener('pointerdown', start);
   for (const t of cancelEvents) el.addEventListener(t, cancel);
-  return () => {
+  const detach = () => {
     cancel();
     el.removeEventListener('pointerdown', start);
     for (const t of cancelEvents) el.removeEventListener(t, cancel);
   };
+  return Object.assign(detach, { cancel });
 }

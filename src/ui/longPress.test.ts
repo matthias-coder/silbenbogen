@@ -77,6 +77,18 @@ describe('attachLongPress', () => {
       expect(onEnd).toHaveBeenCalledTimes(1);
     });
 
+    it('can be cancelled from outside: no fire, onEnd once', () => {
+      const el2 = document.createElement('button');
+      const detach = attachLongPress(el2, 3000, cb, { onStart, onEnd });
+      el2.dispatchEvent(ev('pointerdown'));
+      onEnd.mockClear();
+      detach.cancel();
+      vi.advanceTimersByTime(5000);
+      el2.dispatchEvent(ev('pointerup'));
+      expect(cb).not.toHaveBeenCalled();
+      expect(onEnd).toHaveBeenCalledTimes(1);
+    });
+
     it('calls onEnd once on detach during a hold', () => {
       const el2 = document.createElement('button');
       const detach = attachLongPress(el2, 3000, cb, { onStart, onEnd });
