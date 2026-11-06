@@ -112,7 +112,11 @@ export function createItemView(
   const onDown = (e: PointerEvent) => {
     const p = toView(e);
     if (p && controller.down(e.pointerId, p.x, p.y)) {
-      el.setPointerCapture?.(e.pointerId);
+      try {
+        el.setPointerCapture?.(e.pointerId);
+      } catch {
+        // capture is best effort; the drag works without it
+      }
       e.preventDefault();
     }
   };
@@ -127,6 +131,7 @@ export function createItemView(
   el.addEventListener('pointermove', onMove);
   el.addEventListener('pointerup', onUp);
   el.addEventListener('pointercancel', onCancel);
+  el.addEventListener('lostpointercapture', onCancel);
 
   render(controller.state);
 
@@ -138,6 +143,7 @@ export function createItemView(
       el.removeEventListener('pointermove', onMove);
       el.removeEventListener('pointerup', onUp);
       el.removeEventListener('pointercancel', onCancel);
+      el.removeEventListener('lostpointercapture', onCancel);
     },
   };
 }
