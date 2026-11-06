@@ -37,10 +37,10 @@ Helm Zelt Welt kalt alt Gold wild bunt E-le-fant Mo-ment Wurst Durst Park Zwerg 
 Dorf Wort Ort Art Bart Sport Start Lift Flos-se Tre-sor Tritt Trost Frost Stirn Stel-le Stil Stim-me
 Strom Senf Samt Amt elf Mast Lust Last List Rost Test Flur Flut Flam-me
 
-Lu-na Li-na Mo-na Ti-mo Le-a Pi-a Ju-le Sa-ra La-ra Ja-na Mi-la Ne-le O-le I-na U-te U-do Ju-li-a E-li E-le-na
+Lu-na Li-na Mo-na Ti-mo Le-a Pi-a Ju-le Sa-ra La-ra Ja-na Mi-la Ne-le O-le I-na U-te U-do E-li E-le-na
 La-ma Mu-li Di-no Ku-li Ki-wi Ta-xi He-xe Ni-xe La-va To-fu Tu-ba Ti-pi Ju-li Ju-ni Jo-jo Ka-ro Pu-te Ma-de Mo-de
-Re-de Bu-de Bo-te Ga-be Lü-ge He-fe Ra-ke-te Ra-di-o Vi-de-o Ko-a-la O-a-se O-li-ve Fo-li-e Li-ni-e Fe-ri-en
-Mu-se-um Mi-nu-te Sa-fa-ri Ka-ka-du Ku-si-ne Ja-nu-ar Ge-mü-se En-de Er-de Ig-lu In-fo Or-ka Al-ge Ol-ga Ul-la
+Re-de Bu-de Bo-te Ga-be Lü-ge He-fe Ra-ke-te Ko-a-la O-li-ve
+Mu-se-um Mi-nu-te Sa-fa-ri Ka-ka-du Ku-si-ne Ge-mü-se En-de Er-de In-fo Or-ka Al-ge Ol-ga Ul-la
 El-le Ul-me Ar-no An-ja mü-de bö-se So-ße Fü-ße Sä-ge
 
 der das den dem was wer wir mir dir hat hin her bin bis mit von vor für nur nun gut man mag kam
@@ -64,9 +64,9 @@ le-sen ma-len ru-fen sa-gen ho-len ha-ben ge-ben le-ben lo-ben re-den ba-den ra-
 wol-len sol-len fal-len hal-ten hel-fen wer-fen ler-nen tur-nen tan-zen sit-zen put-zen hof-fen bit-ten ret-ten
 hö-ren ü-ben lus-tig mu-tig sal-zig fer-tig bit-ter je-der o-ben un-ten hin-ten vor-ne
 
-Toch-ter Mitt-woch Tep-pich Kir-che Bu-che Ei-che Es-che Teich reich weich wach auch Bauch Rauch dick dich mich
+Toch-ter Mitt-woch Tep-pich Kir-che Bu-che Ei-che Teich reich weich wach auch Bauch Rauch dick dich mich
 sich doch noch nach euch ko-chen rie-chen rech-nen rich-tig wich-tig Zei-chen Häus-chen Mär-chen Ka-nin-chen
-So-cke Ha-cke Lü-cke E-cke e-ckig Ti-cket zu-rück Bock Na-cken pa-cken ba-cken we-cken We-cker Ho-cker A-cker
+So-cke Ha-cke Lü-cke Ti-cket zu-rück Bock Na-cken pa-cken ba-cken we-cken We-cker Ho-cker
 le-cker lo-cker schön schon Schein Schaum Schach Scheu-ne Schau-fel Schü-ler scha-de Scho-ko Tausch Fi-scher
 wa-schen du-schen mi-schen na-schen Tu-sche Ma-sche Ei-sen Ei-le Ei-er fein dein sein kein weil Beil heiß weiß
 Wei-se Wei-de Hei-de Sei-de bei-de Zeit weit Leim Reim Heim Keim Zei-le Mei-le Fei-le ei-len tei-len hei-len
@@ -85,9 +85,9 @@ Mond Hemd Hals Gans Keks Text Axt Arzt Herbst Kunst Obst jetzt acht Nacht Licht 
 Frucht durch Storch Hirsch Blitz Witz Sitz Satz Netz Tanz ganz Kranz Schwanz Pelz stolz kurz März Sturz Kreuz
 Zweig zwei zwölf fünf eins Knie Knopf Kno-chen Kno-ten Krebs Kraut Braut Kreis Brei Blei frei treu brav Brief
 Trieb Stiel Stau Pfau Pfeil Pflau-me Pfan-ne Pfef-fer Pfüt-ze Pfo-te Zwie-bel Stie-fel Flie-ger Krei-de
-Freu-de Träu-me Steu-er Kräu-ter drau-ßen tau-send Grü-ße Ze-bra Zi-tro-ne Krö-te Kle-ber Klas-se Trak-tor
-Fa-brik Ma-gnet Spi-nat Kla-vier Mi-kro-fon Fe-bru-ar A-pril Au-gust Sams-tag Diens-tag Frei-tag Hams-ter
-Bürs-te Pols-ter Erb-se Jo-gurt Flug-zeug Hand-tuch Buch-sta-be Po-li-zist tref-fen plat-zen krat-zen
+Freu-de Träu-me Steu-er Kräu-ter drau-ßen tau-send Grü-ße Krö-te Kle-ber Klas-se Trak-tor
+Spi-nat Kla-vier Au-gust Sams-tag Diens-tag Frei-tag Hams-ter
+Bürs-te Pols-ter Erb-se Flug-zeug Hand-tuch Buch-sta-be Po-li-zist tref-fen plat-zen krat-zen
 schwit-zen Schnit-zel Spit-ze spie-len flie-gen fra-gen tra-gen blei-ben brau-chen spre-chen klet-tern
 bas-teln trau-rig tro-cken durs-tig ge-sund stark schwach hart rund dort
 `;
