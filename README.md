@@ -2,6 +2,14 @@
 
 Kleine Lese-App für Erstklässler: Wörter werden in Silben mit einem Bogen gelesen. Läuft als installierbare Web-App (PWA) und funktioniert offline.
 
+## App öffnen
+
+**https://matthias-coder.github.io/silbenbogen/**
+
+Oder mit dem Tablet scannen:
+
+<a href="https://matthias-coder.github.io/silbenbogen/"><img src="assets/qr-silbenbogen.png" alt="QR-Code zur Silbenbogen-App" width="240"></a>
+
 ## Entwickeln
 
 ```
@@ -17,7 +25,7 @@ Push auf `main` startet GitHub Actions (Tests, Build) und veröffentlicht `dist/
 
 ## Auf dem Tablet installieren
 
-Adresse der App in Chrome öffnen, dann Menü → „App installieren“ bzw. „Zum Startbildschirm hinzufügen“. Danach startet die App vom Startbildschirm und läuft auch ohne Internet. Updates werden beim nächsten Start mit Internet automatisch übernommen.
+Adresse der App in Chrome öffnen (Link oder QR-Code oben), dann Menü → „App installieren“ bzw. „Zum Startbildschirm hinzufügen“. Danach startet die App vom Startbildschirm und läuft auch ohne Internet. Updates werden beim nächsten Start mit Internet automatisch übernommen.
 
 ## Elternbereich
 
