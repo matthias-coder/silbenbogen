@@ -34,13 +34,27 @@ describe('buildRound', () => {
     expect(new Set(buildRound(many, mulberry32(2)).map((i) => i.id)).size).toBe(10);
   });
 
-  it('weights stages equally, not by number of tasks', () => {
+  it('never repeats a task while a small stage sits next to a large one', () => {
     const many = Array.from({ length: 30 }, (_, i) => fake('s' + i, 1));
     const mixed = [...many, fake('w1', 3), fake('w2', 3), fake('w3', 3)];
     let words = 0;
     for (let seed = 0; seed < 200; seed++) {
       const r = buildRound(mixed, mulberry32(seed));
+      expect(new Set(r.map((i) => i.id)).size).toBe(10);
       noRepeat(r);
+      words += r.filter((i) => i.stage === 3).length;
+    }
+    expect(words / 2000).toBeGreaterThan(0.25);
+    expect(words / 2000).toBeLessThanOrEqual(0.3);
+  });
+
+  it('weights balanced stages equally', () => {
+    const a = Array.from({ length: 30 }, (_, i) => fake('s' + i, 1));
+    const b = Array.from({ length: 30 }, (_, i) => fake('w' + i, 3));
+    let words = 0;
+    for (let seed = 0; seed < 200; seed++) {
+      const r = buildRound([...a, ...b], mulberry32(seed));
+      expect(new Set(r.map((i) => i.id)).size).toBe(10);
       words += r.filter((i) => i.stage === 3).length;
     }
     expect(words / 2000).toBeGreaterThan(0.35);
