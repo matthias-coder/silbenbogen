@@ -167,6 +167,31 @@ describe('mountReadingScreen', () => {
     expect(onOpenParent).toHaveBeenCalledTimes(1);
   });
 
+  it('marks the gear as holding only while it is pressed', () => {
+    down(q('gear'));
+    expect(q('gear').classList.contains('holding')).toBe(true);
+    vi.advanceTimersByTime(1000);
+    up(q('gear'));
+    expect(q('gear').classList.contains('holding')).toBe(false);
+    down(q('gear'));
+    vi.advanceTimersByTime(3000);
+    expect(onOpenParent).toHaveBeenCalledTimes(1);
+    expect(q('gear').classList.contains('holding')).toBe(false);
+  });
+
+  it('shows a notice for 2.5 seconds when given one', () => {
+    expect(q('notice')).toBeNull();
+    unmount();
+    unmount = mountReadingScreen(root, {
+      pool: pool(), onOpenParent, rng: mulberry32(1), notice: 'Gespeichert: 25 Silben',
+    });
+    expect(q('notice').textContent).toBe('Gespeichert: 25 Silben');
+    vi.advanceTimersByTime(2499);
+    expect(q('notice')).not.toBeNull();
+    vi.advanceTimersByTime(1);
+    expect(q('notice')).toBeNull();
+  });
+
   it('renders only the gear for an empty pool', () => {
     const r = document.createElement('div');
     const u = mountReadingScreen(r, { pool: [], onOpenParent: () => {} });

@@ -6,6 +6,7 @@ import { createItemView } from './itemView';
 const ROUND_SIZE = 10;
 const PARENT_PRESS_MS = 3000;
 const SKIP_PRESS_MS = 2000;
+const NOTICE_MS = 2500;
 
 type Result = 'read' | 'skipped';
 
@@ -24,7 +25,7 @@ function h<K extends keyof HTMLElementTagNameMap>(
 
 export function mountReadingScreen(
   root: HTMLElement,
-  deps: { pool: Item[]; onOpenParent: () => void; rng?: () => number },
+  deps: { pool: Item[]; onOpenParent: () => void; rng?: () => number; notice?: string },
 ): () => void {
   const screen = h('div', null, 'reading');
   screen.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -32,8 +33,17 @@ export function mountReadingScreen(
   const gear = h('button', 'gear', 'gear', '⚙');
   gear.type = 'button';
   gear.setAttribute('aria-label', 'Elternbereich (3 Sekunden halten)');
-  const detachGear = attachLongPress(gear, PARENT_PRESS_MS, deps.onOpenParent);
+  const detachGear = attachLongPress(gear, PARENT_PRESS_MS, deps.onOpenParent, {
+    onStart: () => gear.classList.add('holding'),
+    onEnd: () => gear.classList.remove('holding'),
+  });
   screen.appendChild(gear);
+  let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+  if (deps.notice) {
+    const notice = h('div', 'notice', 'notice', deps.notice);
+    screen.appendChild(notice);
+    noticeTimer = setTimeout(() => notice.remove(), NOTICE_MS);
+  }
   root.replaceChildren(screen);
 
   let detachNext = () => {};
@@ -42,6 +52,7 @@ export function mountReadingScreen(
     detachGear();
     detachNext();
     stopWatching();
+    clearTimeout(noticeTimer);
     view?.destroy();
     view = null;
     root.replaceChildren();

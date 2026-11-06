@@ -1,5 +1,5 @@
 import { GROUPS, LETTERS } from '../domain/graphemes';
-import { countByStage, reconcileStages } from '../domain/pool';
+import { countByStage } from '../domain/pool';
 import type { Settings, Stage } from '../domain/types';
 
 const STAGE_LABELS: Record<Stage, string> = {
@@ -11,6 +11,24 @@ const STAGE_LABELS: Record<Stage, string> = {
   6: 'Mehrere Mitlaute (Blu-me, Brot)',
 };
 const STAGES: readonly Stage[] = [1, 2, 3, 4, 5, 6];
+
+const REASON_SYLLABLES = 'Dafür braucht es mindestens einen Mitlaut und einen Selbstlaut.';
+const REASON_GROUP = 'Dafür fehlt eine Buchstabengruppe (z. B. Sch, Ei, Au).';
+const REASON_WORDS = 'Mit diesen Buchstaben gibt es dafür noch keine Wörter.';
+
+/** "25 Silben und 30 Wörter" for the given stages; empty when nothing is practised. */
+export function practiceParts(counts: Record<Stage, number>, stages: Iterable<Stage>): string {
+  let syllables = 0;
+  let words = 0;
+  for (const s of stages) {
+    if (s <= 2) syllables += counts[s];
+    else words += counts[s];
+  }
+  const parts: string[] = [];
+  if (syllables > 0) parts.push(`${syllables} Silben`);
+  if (words > 0) parts.push(`${words} Wörter`);
+  return parts.join(' und ');
+}
 
 const label = (key: string): string =>
   key === 'ß' ? key : key.charAt(0).toUpperCase() + key.slice(1);
@@ -28,13 +46,16 @@ function el<K extends keyof HTMLElementTagNameMap>(
 
 export function mountParentScreen(
   root: HTMLElement,
-  deps: { settings: Settings; onDone: (s: Settings) => void },
+  deps: { settings: Settings; onDone: (s: Settings) => void; onCancel: () => void },
 ): () => void {
   const known = new Set(deps.settings.known);
-  let stages = new Set<Stage>(deps.settings.stages);
+  const wanted = new Set<Stage>(deps.settings.stages);
 
   const screen = el('div', 'parent');
-  screen.appendChild(el('h1', 'parent-title', 'Bekannte Buchstaben'));
+  const body = el('div', 'parent-body');
+  screen.appendChild(body);
+  body.appendChild(el('h1', 'parent-page-title', 'Elternbereich'));
+  body.appendChild(el('h2', 'parent-title', 'Bekannte Buchstaben'));
 
   const buttons = new Map<string, HTMLButtonElement>();
   const addGrid = (keys: readonly string[], className: string) => {
@@ -51,33 +72,44 @@ export function mountParentScreen(
       buttons.set(k, b);
       grid.appendChild(b);
     }
-    screen.appendChild(grid);
+    body.appendChild(grid);
   };
   addGrid(LETTERS, 'singles');
   addGrid(GROUPS, 'groups');
 
-  screen.appendChild(el('h2', 'parent-title', 'Was wird geübt'));
+  body.appendChild(el('h2', 'parent-title', 'Was wird geübt'));
   const boxes = new Map<Stage, HTMLInputElement>();
   const counters = new Map<Stage, HTMLElement>();
+  const reasons = new Map<Stage, HTMLElement>();
   const list = el('div', 'stage-list');
   for (const s of STAGES) {
+    const item = el('div', 'stage-item');
     const row = el('label', 'stage-row');
     const box = el('input');
     box.type = 'checkbox';
     box.dataset.stage = String(s);
     box.addEventListener('change', () => {
-      if (box.checked) stages.add(s);
-      else stages.delete(s);
+      if (box.checked) wanted.add(s);
+      else wanted.delete(s);
       refresh();
     });
     const counter = el('span', 'stage-count');
     counter.dataset.count = String(s);
     boxes.set(s, box);
     counters.set(s, counter);
+    const reason = el('p', 'stage-reason');
+    reason.dataset.reason = String(s);
+    reasons.set(s, reason);
     row.append(box, el('span', 'stage-label', STAGE_LABELS[s]), counter);
-    list.appendChild(row);
+    item.append(row, reason);
+    list.appendChild(item);
   }
-  screen.appendChild(list);
+  body.appendChild(list);
+
+  const footer = el('div', 'parent-footer');
+  const summary = el('p', 'summary');
+  summary.dataset.testid = 'summary';
+  footer.appendChild(summary);
 
   const hint = el(
     'p',
@@ -85,7 +117,12 @@ export function mountParentScreen(
     'Mit dieser Auswahl gibt es keine Aufgaben. Bitte Buchstaben oder Stufen ergänzen.',
   );
   hint.dataset.testid = 'empty-hint';
-  screen.appendChild(hint);
+  footer.appendChild(hint);
+
+  const cancel = el('button', 'cancel', 'Abbrechen');
+  cancel.type = 'button';
+  cancel.dataset.testid = 'cancel';
+  cancel.addEventListener('click', () => deps.onCancel());
 
   const done = el('button', 'done', 'Fertig');
   done.type = 'button';
@@ -94,23 +131,43 @@ export function mountParentScreen(
     deps.onDone({
       version: 1,
       known: [...known],
-      stages: [...stages].sort((a, b) => a - b),
+      stages: activeStages(),
     });
   });
-  screen.appendChild(done);
+  const actions = el('div', 'parent-actions');
+  actions.append(cancel, done);
+  footer.appendChild(actions);
+  screen.appendChild(footer);
+
+  const activeStages = (): Stage[] => {
+    const counts = countByStage(known);
+    return STAGES.filter((s) => wanted.has(s) && counts[s] > 0);
+  };
+
+  const reasonFor = (s: Stage): string => {
+    if (s <= 2) return REASON_SYLLABLES;
+    if (s === 5 && !GROUPS.some((g) => known.has(g))) return REASON_GROUP;
+    return REASON_WORDS;
+  };
 
   function refresh(): void {
     const counts = countByStage(known);
-    stages = new Set(reconcileStages([...stages], counts));
     for (const [k, b] of buttons) b.setAttribute('aria-pressed', String(known.has(k)));
     for (const s of STAGES) {
-      boxes.get(s)!.checked = stages.has(s);
-      boxes.get(s)!.disabled = counts[s] === 0;
+      const available = counts[s] > 0;
+      boxes.get(s)!.checked = wanted.has(s) && available;
+      boxes.get(s)!.disabled = !available;
       counters.get(s)!.textContent = `${counts[s]} ${s <= 2 ? 'Silben' : 'Wörter'}`;
+      const reason = reasons.get(s)!;
+      reason.hidden = available;
+      reason.textContent = available ? '' : reasonFor(s);
     }
-    const empty = stages.size === 0;
-    hint.hidden = !empty;
-    done.disabled = empty;
+    const active = activeStages();
+    const parts = practiceParts(counts, active);
+    summary.textContent = parts ? `So wird geübt: ${parts}` : '';
+    summary.hidden = active.length === 0;
+    hint.hidden = active.length > 0;
+    done.disabled = active.length === 0;
   }
 
   refresh();
