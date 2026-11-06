@@ -14,3 +14,105 @@ svg.item-view {
   max-width: 100%;
   max-height: 100%;
 }
+
+.reading {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  color: #1d1d1f;
+}
+
+.reading .gear {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 24px;
+  color: #dcdce1;
+  touch-action: none;
+}
+
+.reading .dots {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  display: flex;
+  gap: 10px;
+}
+
+.reading .dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #dcdce1;
+}
+
+.reading .dot.on {
+  background: #e6398b;
+}
+
+.reading .stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 48px 120px;
+}
+
+.reading .item {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reading .done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+.reading .done-title {
+  margin: 0;
+  font-size: 72px;
+}
+
+.reading .next,
+.reading .again {
+  min-height: 64px;
+  padding: 0 48px;
+  border: 0;
+  border-radius: 16px;
+  background: #8b3fb5;
+  color: #ffffff;
+  font: inherit;
+  font-size: 28px;
+}
+
+.reading .next {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  min-width: 200px;
+}
+
+.reading .next[hidden] {
+  display: none;
+}
+
+.reading .next.ready {
+  outline: 4px solid #e6398b;
+  outline-offset: 3px;
+  box-shadow: 0 6px 16px rgba(139, 63, 181, 0.45);
+}

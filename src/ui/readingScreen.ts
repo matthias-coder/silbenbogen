@@ -1,0 +1,101 @@
+import { buildRound } from '../domain/round';
+import type { Item } from '../domain/types';
+import { attachLongPress } from './longPress';
+import { createItemView } from './itemView';
+
+const ROUND_SIZE = 10;
+const PARENT_PRESS_MS = 3000;
+
+function h<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  testId: string | null,
+  className = '',
+  text = '',
+): HTMLElementTagNameMap[K] {
+  const e = document.createElement(tag);
+  if (testId) e.dataset.testid = testId;
+  if (className) e.className = className;
+  if (text) e.textContent = text;
+  return e;
+}
+
+export function mountReadingScreen(
+  root: HTMLElement,
+  deps: { pool: Item[]; onOpenParent: () => void; rng?: () => number },
+): () => void {
+  const screen = h('div', null, 'reading');
+  screen.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  const gear = h('button', 'gear', 'gear', '⚙');
+  gear.type = 'button';
+  gear.setAttribute('aria-label', 'Elternbereich (3 Sekunden halten)');
+  const detachGear = attachLongPress(gear, PARENT_PRESS_MS, deps.onOpenParent);
+  screen.appendChild(gear);
+  root.replaceChildren(screen);
+
+  const unmount = () => {
+    detachGear();
+    view?.destroy();
+    view = null;
+    root.replaceChildren();
+  };
+
+  let view: ReturnType<typeof createItemView> | null = null;
+  if (deps.pool.length === 0) return unmount;
+
+  const dots = h('div', 'dots', 'dots');
+  const dotEls = Array.from({ length: ROUND_SIZE }, () => dots.appendChild(h('span', null, 'dot')));
+  const stage = h('div', null, 'stage');
+  const next = h('button', 'next', 'next', 'Weiter');
+  next.type = 'button';
+  screen.append(dots, stage, next);
+
+  let round: Item[] = [];
+  let index = 0;
+
+  const showDots = () => dotEls.forEach((d, i) => d.classList.toggle('on', i < index));
+
+  function clearStage(): void {
+    view?.destroy();
+    view = null;
+    stage.replaceChildren();
+  }
+
+  function showItem(): void {
+    clearStage();
+    next.hidden = false;
+    next.classList.remove('ready');
+    const holder = h('div', 'item', 'item');
+    view = createItemView(round[index], () => next.classList.add('ready'));
+    holder.appendChild(view.el);
+    stage.appendChild(holder);
+  }
+
+  function showDone(): void {
+    clearStage();
+    next.hidden = true;
+    const done = h('div', 'done', 'done');
+    const again = h('button', 'again', 'again', 'Nochmal');
+    again.type = 'button';
+    again.addEventListener('click', startRound);
+    done.append(h('p', null, 'done-title', 'Geschafft!'), again);
+    stage.appendChild(done);
+  }
+
+  function startRound(): void {
+    round = buildRound(deps.pool, deps.rng, ROUND_SIZE);
+    index = 0;
+    showDots();
+    showItem();
+  }
+
+  next.addEventListener('click', () => {
+    index++;
+    showDots();
+    if (index >= round.length) showDone();
+    else showItem();
+  });
+
+  startRound();
+  return unmount;
+}
