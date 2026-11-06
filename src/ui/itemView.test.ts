@@ -13,6 +13,7 @@ describe('createItemView', () => {
     expect(v.el.querySelectorAll('path.progress')).toHaveLength(2);
     expect(v.el.querySelector('g.handle')!.getAttribute('transform')).toContain('translate(85,170)');
     expect(v.el.querySelectorAll('g.handle')[1].classList.contains('inactive')).toBe(true);
+    expect(v.el.querySelector('g.handle path')!.getAttribute('d')).toBe('M-11 -12 L15 0 L-11 12 L-4 0 Z');
   });
 
   it('uses unique gradient ids per view', () => {

@@ -74,7 +74,7 @@ export function createItemView(
   layout.syllables.forEach(() => {
     const g = svg('g', { class: 'handle' }, el);
     handleCircles.push(svg('circle', { r: 28, fill: '#ffffff', 'stroke-width': 6 }, g));
-    handleTriangles.push(svg('path', { d: 'M-10 -13 L15 0 L-10 13 Z' }, g));
+    handleTriangles.push(svg('path', { d: 'M-11 -12 L15 0 L-11 12 L-4 0 Z' }, g));
     handles.push(g);
   });
 
