@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { countByStage } from '../domain/pool';
 import type { Settings } from '../domain/types';
 import { DEFAULT_SETTINGS } from '../storage/settings';
 import { mountParentScreen } from './parentScreen';
@@ -80,11 +81,14 @@ describe('mountParentScreen', () => {
   });
 
   it('summarises what is practised', () => {
+    // The word count follows the word list, so it is derived instead of hard-coded.
+    const words = countByStage(new Set(DEFAULT_SETTINGS.known))[3];
+    expect(words).toBeGreaterThan(0);
     expect(summary()).toBe('So wird geübt: 25 Silben');
     stage(3).click();
-    expect(summary()).toBe('So wird geübt: 25 Silben und 30 Wörter');
+    expect(summary()).toBe(`So wird geübt: 25 Silben und ${words} Wörter`);
     stage(1).click();
-    expect(summary()).toBe('So wird geübt: 30 Wörter');
+    expect(summary()).toBe(`So wird geübt: ${words} Wörter`);
   });
 
   it('explains why a stage is disabled', () => {
