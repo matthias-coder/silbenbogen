@@ -61,6 +61,11 @@ svg.item-view {
   background: #e6398b;
 }
 
+.reading .dot.skipped {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 2px #94949c;
+}
+
 .reading .stage {
   flex: 1;
   min-height: 0;
@@ -90,6 +95,12 @@ svg.item-view {
   font-size: 72px;
 }
 
+.reading .score {
+  margin: -16px 0 0;
+  font-size: 32px;
+  color: #6b6b72;
+}
+
 .reading .next,
 .reading .again {
   min-height: 64px;
@@ -104,6 +115,8 @@ svg.item-view {
 
 .reading .next {
   position: absolute;
+  isolation: isolate;
+  overflow: hidden;
   right: 24px;
   bottom: 24px;
   min-width: 200px;
@@ -111,6 +124,32 @@ svg.item-view {
 
 .reading .next[hidden] {
   display: none;
+}
+
+.reading .next.locked {
+  background: #dcdce1;
+  color: #6b6b72;
+  box-shadow: none;
+  outline: none;
+}
+
+.reading .next.locked::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #b9b9c0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  z-index: -1;
+}
+
+.reading .next.locked.holding::before {
+  animation: hold-fill 2s linear forwards;
+}
+
+@keyframes hold-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 
 .reading .next.ready {

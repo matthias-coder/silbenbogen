@@ -5,6 +5,9 @@ import { createItemView } from './itemView';
 
 const ROUND_SIZE = 10;
 const PARENT_PRESS_MS = 3000;
+const SKIP_PRESS_MS = 2000;
+
+type Result = 'read' | 'skipped';
 
 function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -33,8 +36,10 @@ export function mountReadingScreen(
   screen.appendChild(gear);
   root.replaceChildren(screen);
 
+  let detachNext = () => {};
   const unmount = () => {
     detachGear();
+    detachNext();
     view?.destroy();
     view = null;
     root.replaceChildren();
@@ -52,8 +57,25 @@ export function mountReadingScreen(
 
   let round: Item[] = [];
   let index = 0;
+  let results: Result[] = [];
 
-  const showDots = () => dotEls.forEach((d, i) => d.classList.toggle('on', i < index));
+  const showDots = () =>
+    dotEls.forEach((d, i) => {
+      d.classList.toggle('on', results[i] === 'read');
+      d.classList.toggle('skipped', results[i] === 'skipped');
+    });
+
+  const isLocked = () => next.classList.contains('locked');
+  const lock = () => {
+    next.classList.add('locked');
+    next.classList.remove('ready', 'holding');
+    next.setAttribute('aria-disabled', 'true');
+  };
+  const unlock = () => {
+    next.classList.remove('locked', 'holding');
+    next.removeAttribute('aria-disabled');
+    next.classList.add('ready');
+  };
 
   function clearStage(): void {
     view?.destroy();
@@ -64,9 +86,9 @@ export function mountReadingScreen(
   function showItem(): void {
     clearStage();
     next.hidden = false;
-    next.classList.remove('ready');
+    lock();
     const holder = h('div', 'item', 'item');
-    view = createItemView(round[index], () => next.classList.add('ready'));
+    view = createItemView(round[index], unlock);
     holder.appendChild(view.el);
     stage.appendChild(holder);
   }
@@ -78,22 +100,41 @@ export function mountReadingScreen(
     const again = h('button', 'again', 'again', 'Nochmal');
     again.type = 'button';
     again.addEventListener('click', startRound);
-    done.append(h('p', null, 'done-title', 'Geschafft!'), again);
+    const read = results.filter((r) => r === 'read').length;
+    done.append(
+      h('p', null, 'done-title', 'Geschafft!'),
+      h('p', 'score', 'score', `${read} von ${ROUND_SIZE} gelesen`),
+      again,
+    );
     stage.appendChild(done);
   }
 
   function startRound(): void {
     round = buildRound(deps.pool, deps.rng, ROUND_SIZE);
     index = 0;
+    results = [];
     showDots();
     showItem();
   }
 
-  next.addEventListener('click', () => {
+  function advance(result: Result): void {
+    results[index] = result;
     index++;
     showDots();
     if (index >= round.length) showDone();
     else showItem();
+  }
+
+  next.addEventListener('click', () => {
+    if (!isLocked()) advance('read');
+  });
+  detachNext = attachLongPress(next, SKIP_PRESS_MS, () => {
+    if (isLocked()) advance('skipped');
+  }, {
+    onStart: () => {
+      if (isLocked()) next.classList.add('holding');
+    },
+    onEnd: () => next.classList.remove('holding'),
   });
 
   startRound();

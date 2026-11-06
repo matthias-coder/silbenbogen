@@ -49,4 +49,42 @@ describe('attachLongPress', () => {
     vi.advanceTimersByTime(5000);
     expect(cb).not.toHaveBeenCalled();
   });
+
+  describe('hooks', () => {
+    let onStart: Mock<() => void>;
+    let onEnd: Mock<() => void>;
+    beforeEach(() => {
+      onStart = vi.fn();
+      onEnd = vi.fn();
+      attachLongPress(el, 3000, cb, { onStart, onEnd });
+    });
+
+    it('calls onStart on pointerdown and onEnd once when the hold fires', () => {
+      el.dispatchEvent(ev('pointerdown'));
+      expect(onStart).toHaveBeenCalledTimes(1);
+      expect(onEnd).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(3000);
+      expect(cb).toHaveBeenCalledTimes(1);
+      expect(onEnd).toHaveBeenCalledTimes(1);
+      el.dispatchEvent(ev('pointerup'));
+      expect(onEnd).toHaveBeenCalledTimes(1);
+    });
+
+    it.each(['pointerup', 'pointerleave', 'pointercancel'])('calls onEnd once on %s', (type) => {
+      el.dispatchEvent(ev('pointerdown'));
+      el.dispatchEvent(ev(type));
+      el.dispatchEvent(ev(type));
+      expect(onEnd).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls onEnd once on detach during a hold', () => {
+      const el2 = document.createElement('button');
+      const detach = attachLongPress(el2, 3000, cb, { onStart, onEnd });
+      el2.dispatchEvent(ev('pointerdown'));
+      onEnd.mockClear();
+      detach();
+      detach();
+      expect(onEnd).toHaveBeenCalledTimes(1);
+    });
+  });
 });
