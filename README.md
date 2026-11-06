@@ -13,7 +13,7 @@ npm run build    # Produktions-Build nach dist/
 
 ## Veröffentlichen
 
-Push auf `main` startet GitHub Actions (Tests, Build) und veröffentlicht `dist/` über GitHub Pages.
+Push auf `main` startet GitHub Actions (Tests, Build) und veröffentlicht `dist/` über GitHub Pages. GitHub Pages muss einmalig auf die Quelle „GitHub Actions“ gestellt werden (Repository Settings → Pages → Build and deployment → Source).
 
 ## Auf dem Tablet installieren
 

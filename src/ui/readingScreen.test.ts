@@ -53,6 +53,7 @@ describe('mountReadingScreen', () => {
 
   it('opens the parent area only after a 3 second long press', () => {
     q('gear').click();
+    expect(onOpenParent).not.toHaveBeenCalled();
     q('gear').dispatchEvent(new Event('pointerdown', { bubbles: true }));
     vi.advanceTimersByTime(2999);
     expect(onOpenParent).not.toHaveBeenCalled();
