@@ -73,6 +73,7 @@ svg.item-view {
   bottom: calc(clamp(56px, 8vmin, 88px) + 36px);
   left: 50%;
   transform: translateX(-50%);
+  width: max-content;
   max-width: 90vw;
   box-sizing: border-box;
   padding: 8px 16px;
