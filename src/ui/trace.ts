@@ -12,6 +12,7 @@ export class TraceController {
     private readonly layout: ItemLayout,
     private readonly onChange: (s: TraceState) => void,
     private readonly onComplete: () => void,
+    private readonly grabRadius = GRAB_RADIUS,
   ) {
     this.s = this.fresh();
   }
@@ -28,7 +29,7 @@ export class TraceController {
     if (this.s.complete || this.pointer !== null) return false;
     const syl = this.layout.syllables[this.s.current];
     const h = arcPoint(syl, this.s.t[this.s.current]);
-    if (Math.hypot(x - h.x, y - h.y) > GRAB_RADIUS) return false;
+    if (Math.hypot(x - h.x, y - h.y) > this.grabRadius) return false;
     this.pointer = pointerId;
     return true;
   }

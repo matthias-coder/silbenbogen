@@ -53,4 +53,13 @@ describe('TraceController', () => {
     c.state.complete = true;
     expect(c.state).toEqual({ current: 0, t: [0, 0], complete: false });
   });
+
+  it('grabs within a custom radius and not beyond', () => {
+    const ma = layoutItem([['M', 'a']]);
+    const c = new TraceController(ma, () => {}, () => {}, 120);
+    expect(c.down(1, 85 + 121, 170)).toBe(false);
+    expect(c.down(1, 85 + 119, 170)).toBe(true);
+    const d = new TraceController(ma, () => {}, () => {});
+    expect(d.down(1, 85 + 119, 170)).toBe(false);
+  });
 });

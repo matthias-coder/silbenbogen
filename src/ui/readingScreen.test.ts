@@ -180,4 +180,60 @@ describe('mountReadingScreen', () => {
     unmount();
     expect(root.childElementCount).toBe(0);
   });
+
+  describe('fitting to the stage', () => {
+    let size = { w: 0, h: 0 };
+    beforeEach(() => {
+      size = { w: 0, h: 0 };
+      Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get: () => size.w });
+      Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => size.h });
+    });
+    afterEach(() => {
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientWidth;
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientHeight;
+    });
+
+    it('behaves like before when the stage has no size', () => {
+      expect(itemEl().hasAttribute('width')).toBe(false);
+    });
+
+    it('rebuilds the current item with the new fit on resize and relocks it', () => {
+      complete();
+      expect(q('next').classList.contains('locked')).toBe(false);
+      size = { w: 343, h: 660 };
+      const before = itemEl();
+      window.dispatchEvent(new Event('resize'));
+      expect(itemEl()).not.toBe(before);
+      expect(itemEl().hasAttribute('width')).toBe(true);
+      expect(q('next').classList.contains('locked')).toBe(true);
+      const again = itemEl();
+      window.dispatchEvent(new Event('resize'));
+      expect(itemEl()).toBe(again);
+    });
+
+    it('stops listening after unmount', () => {
+      unmount();
+      size = { w: 343, h: 660 };
+      expect(() => window.dispatchEvent(new Event('resize'))).not.toThrow();
+    });
+
+    it('uses a ResizeObserver when available and disconnects it on unmount', () => {
+      unmount();
+      let cb: () => void = () => {};
+      const disconnect = vi.fn();
+      class FakeRO {
+        constructor(c: () => void) { cb = c; }
+        observe() {}
+        disconnect = disconnect;
+      }
+      vi.stubGlobal('ResizeObserver', FakeRO);
+      unmount = mountReadingScreen(root, { pool: pool(), onOpenParent, rng: mulberry32(1) });
+      size = { w: 343, h: 660 };
+      const before = itemEl();
+      cb();
+      expect(itemEl()).not.toBe(before);
+      unmount();
+      expect(disconnect).toHaveBeenCalledTimes(1);
+    });
+  });
 });

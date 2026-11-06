@@ -37,9 +37,11 @@ export function mountReadingScreen(
   root.replaceChildren(screen);
 
   let detachNext = () => {};
+  let stopWatching = () => {};
   const unmount = () => {
     detachGear();
     detachNext();
+    stopWatching();
     view?.destroy();
     view = null;
     root.replaceChildren();
@@ -88,9 +90,29 @@ export function mountReadingScreen(
     next.hidden = false;
     lock();
     const holder = h('div', 'item', 'item');
-    view = createItemView(round[index], unlock);
-    holder.appendChild(view.el);
     stage.appendChild(holder);
+    fitW = holder.clientWidth;
+    fitH = holder.clientHeight;
+    const fit = fitW > 0 && fitH > 0 ? { width: fitW, height: fitH } : undefined;
+    view = createItemView(round[index], unlock, fit);
+    holder.appendChild(view.el);
+  }
+
+  let fitW = 0;
+  let fitH = 0;
+  const onStageResize = () => {
+    const holder = stage.firstElementChild;
+    if (!view || !holder) return;
+    if (holder.clientWidth === fitW && holder.clientHeight === fitH) return;
+    showItem();
+  };
+  if (typeof ResizeObserver !== 'undefined') {
+    const observer = new ResizeObserver(onStageResize);
+    observer.observe(stage);
+    stopWatching = () => observer.disconnect();
+  } else {
+    window.addEventListener('resize', onStageResize);
+    stopWatching = () => window.removeEventListener('resize', onStageResize);
   }
 
   function showDone(): void {

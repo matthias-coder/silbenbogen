@@ -16,6 +16,33 @@ describe('createItemView', () => {
     expect(v.el.querySelector('g.handle path')!.getAttribute('d')).toBe('M-11 -12 L15 0 L-11 12 L-4 0 Z');
   });
 
+  it('uses mid grey for the untraced track and the inactive handle without fading', () => {
+    const v = createItemView(makeWord('Na-se'), () => {});
+    expect(v.el.querySelector('path.track')!.getAttribute('stroke')).toBe('#94949c');
+    const inactive = v.el.querySelectorAll('g.handle')[1];
+    expect(inactive.querySelector('circle')!.getAttribute('stroke')).toBe('#94949c');
+    expect(inactive.hasAttribute('opacity')).toBe(false);
+    expect(v.el.querySelector('circle')!.getAttribute('r')).toBe('28');
+    expect(v.el.hasAttribute('width')).toBe(false);
+  });
+
+  it('stacks the syllables and sizes the svg and handles when fitted to a narrow area', () => {
+    const v = createItemView(makeWord('Kro-ko-dil'), () => {}, { width: 343, height: 660 });
+    const scale = Math.min(343 / 442, 660 / 930);
+    expect(v.el.getAttribute('viewBox')).toBe('0 0 442 930');
+    expect(Number(v.el.getAttribute('width'))).toBeCloseTo(442 * scale);
+    expect(Number(v.el.getAttribute('height'))).toBeCloseTo(930 * scale);
+    const r = Math.min(Math.max(22 / scale, 28), 48);
+    expect(Number(v.el.querySelector('circle')!.getAttribute('r'))).toBeCloseTo(r);
+    expect(v.el.querySelector('g.handle g')!.getAttribute('transform')).toBe(`scale(${r / 28})`);
+    expect(v.el.querySelectorAll('g.handle')[1].getAttribute('transform')).toMatch(/^translate\([\d.]+,470\)/);
+  });
+
+  it('keeps a row and scale 1 for a wide area', () => {
+    const v = createItemView(makeWord('Kro-ko-dil'), () => {}, { width: 1184, height: 600 });
+    expect(v.el.getAttribute('viewBox')).toBe('0 0 1210 330');
+  });
+
   it('uses unique gradient ids per view', () => {
     const a = createItemView(makeWord('Ma'), () => {});
     const b = createItemView(makeWord('Ma'), () => {});

@@ -1,9 +1,10 @@
 import type { Item } from '../domain/types';
-import { BOX_H, BOX_Y, activeBox, arcAngle, arcPath, arcPoint, colorAt, colorStops, layoutItem } from './arc';
+import { BOX_H, activeBox, arcAngle, arcPath, arcPoint, chooseLayoutMode, colorAt, colorStops, fitScale, layoutItem } from './arc';
 import { TraceController, type TraceState } from './trace';
 
 const NS = 'http://www.w3.org/2000/svg';
-const INACTIVE_COLOR = '#b9b9c0';
+const INACTIVE_COLOR = '#94949c';
+const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 let viewCounter = 0;
 
 function svg<K extends keyof SVGElementTagNameMap>(
@@ -20,10 +21,19 @@ function svg<K extends keyof SVGElementTagNameMap>(
 export function createItemView(
   item: Item,
   onComplete: () => void,
+  fit?: { width: number; height: number },
 ): { el: SVGSVGElement; reset(): void; destroy(): void } {
-  const layout = layoutItem(item.syllables);
+  const mode = fit ? chooseLayoutMode(item.syllables, fit.width, fit.height) : 'row';
+  const layout = layoutItem(item.syllables, mode);
+  const scale = fit ? fitScale(layout, fit.width, fit.height) : 1;
+  const handleR = clamp(22 / scale, 28, 48);
+  const grabRadius = Math.max(75, 40 / scale);
   const uid = `iv${viewCounter++}`;
   const el = svg('svg', { viewBox: `0 0 ${layout.width} ${layout.height}`, class: 'item-view' });
+  if (fit) {
+    el.setAttribute('width', String(layout.width * scale));
+    el.setAttribute('height', String(layout.height * scale));
+  }
   const defs = svg('defs', {}, el);
 
   const boxRects: SVGRectElement[][] = [];
@@ -38,12 +48,12 @@ export function createItemView(
     s.boxes.forEach((b) => {
       rects.push(
         svg('rect', {
-          class: 'box', x: b.x, y: BOX_Y, width: b.w, height: BOX_H, rx: 8,
+          class: 'box', x: b.x, y: b.y, width: b.w, height: BOX_H, rx: 8,
           fill: '#ffffff', 'stroke-width': 4, stroke: b.color,
         }, el),
       );
       const t = svg('text', {
-        x: b.x + b.w / 2, y: 112, 'text-anchor': 'middle', 'font-size': 92,
+        x: b.x + b.w / 2, y: s.y + 112, 'text-anchor': 'middle', 'font-size': 92,
         'font-family': 'Andika, sans-serif', fill: '#1d1d1f',
       }, el);
       t.textContent = b.text;
@@ -51,7 +61,7 @@ export function createItemView(
     boxRects.push(rects);
 
     svg('path', {
-      class: 'track', d: arcPath(s, 0, 1), fill: 'none', stroke: '#dcdce1',
+      class: 'track', d: arcPath(s, 0, 1), fill: 'none', stroke: '#94949c',
       'stroke-width': 16, 'stroke-linecap': 'round',
     }, el);
 
@@ -73,8 +83,9 @@ export function createItemView(
 
   layout.syllables.forEach(() => {
     const g = svg('g', { class: 'handle' }, el);
-    handleCircles.push(svg('circle', { r: 28, fill: '#ffffff', 'stroke-width': 6 }, g));
-    handleTriangles.push(svg('path', { d: 'M-11 -12 L15 0 L-11 12 L-4 0 Z' }, g));
+    handleCircles.push(svg('circle', { r: handleR, fill: '#ffffff', 'stroke-width': 6 }, g));
+    const arrow = svg('g', { transform: `scale(${handleR / 28})` }, g);
+    handleTriangles.push(svg('path', { d: 'M-11 -12 L15 0 L-11 12 L-4 0 Z' }, arrow));
     handles.push(g);
   });
 
@@ -87,7 +98,6 @@ export function createItemView(
       handles[i].setAttribute('transform', `translate(${p.x},${p.y}) rotate(${arcAngle(s, t)})`);
       const inactive = i > st.current;
       handles[i].classList.toggle('inactive', inactive);
-      handles[i].setAttribute('opacity', inactive ? '0.6' : '1');
       const color = inactive ? INACTIVE_COLOR : colorAt(t, n);
       handleCircles[i].setAttribute('stroke', color);
       handleTriangles[i].setAttribute('fill', color);
@@ -100,7 +110,7 @@ export function createItemView(
     });
   }
 
-  const controller = new TraceController(layout, render, onComplete);
+  const controller = new TraceController(layout, render, onComplete, grabRadius);
 
   function toView(e: PointerEvent): { x: number; y: number } | null {
     const ctm = el.getScreenCTM?.();

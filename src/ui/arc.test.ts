@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeBox, arcPoint, arcPath, colorAt, layoutItem } from './arc';
+import { activeBox, arcPoint, arcPath, chooseLayoutMode, colorAt, fitScale, layoutItem } from './arc';
 
 describe('layoutItem', () => {
   it('lays out boxes, arcs and colors', () => {
@@ -47,5 +47,50 @@ describe('colors', () => {
   });
   it('picks the active box', () => {
     expect([activeBox(0.49, 2), activeBox(0.5, 2), activeBox(0.3, 3), activeBox(1, 3)]).toEqual([0, 1, 1, 2]);
+  });
+});
+
+describe('stack layout', () => {
+  const kroko = [['K', 'r', 'o'], ['k', 'o'], ['d', 'i', 'l']];
+  it('keeps row mode as the default with y = 0', () => {
+    const row = layoutItem(kroko);
+    expect(row).toEqual(layoutItem(kroko, 'row'));
+    expect(row.syllables.map((s) => s.y)).toEqual([0, 0, 0]);
+    expect(row.syllables[0].boxes[0].y).toBe(20);
+  });
+
+  it('puts one syllable per row, left aligned', () => {
+    const l = layoutItem(kroko, 'stack');
+    expect(l.width).toBe(442);
+    expect(l.height).toBe(930);
+    expect(l.syllables.map((s) => s.y)).toEqual([0, 300, 600]);
+    expect(l.syllables.map((s) => s.boxes[0].x)).toEqual([30, 30, 30]);
+    expect(l.syllables[1].boxes[0].y).toBe(320);
+    expect(arcPoint(l.syllables[1], 0).y).toBe(300 + 170);
+    expect(arcPath(l.syllables[1], 0, 1).startsWith(`M${l.syllables[1].x0},470`)).toBe(true);
+  });
+});
+
+describe('fitScale', () => {
+  it('fits the layout into the available area', () => {
+    const l = layoutItem([['M', 'a']]);
+    expect(fitScale(l, 612, 1000)).toBe(2);
+    expect(fitScale(l, 1000, 165)).toBe(0.5);
+    expect(fitScale(l, 0, 0)).toBe(1);
+    expect(fitScale(l, NaN, 100)).toBe(1);
+    expect(fitScale(l, -5, 100)).toBe(1);
+  });
+});
+
+describe('chooseLayoutMode', () => {
+  const kroko = [['K', 'r', 'o'], ['k', 'o'], ['d', 'i', 'l']];
+  it('stacks long words on narrow portrait areas and keeps rows on wide ones', () => {
+    expect(chooseLayoutMode(kroko, 343, 660)).toBe('stack');
+    expect(chooseLayoutMode(kroko, 1184, 600)).toBe('row');
+  });
+  it('uses row for single syllables and unusable sizes', () => {
+    expect(chooseLayoutMode([['M', 'a']], 100, 2000)).toBe('row');
+    expect(chooseLayoutMode(kroko, 0, 0)).toBe('row');
+    expect(chooseLayoutMode(kroko, NaN, 660)).toBe('row');
   });
 });
