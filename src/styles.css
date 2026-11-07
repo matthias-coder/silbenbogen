@@ -380,6 +380,116 @@ svg.item-view {
   bottom: 24px;
 }
 
+/* Album */
+.album {
+  touch-action: manipulation;
+  overflow-y: auto;
+}
+
+.album .home {
+  left: 12px;
+}
+
+.album .album-body {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 80px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.album .album-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.album .album-title {
+  margin: 0;
+  font-size: clamp(28px, 5vmin, 44px);
+  font-weight: 400;
+  color: #8b3fb5;
+}
+
+.album .album-total {
+  font-size: 18px;
+  color: #6b6b72;
+}
+
+.album .album-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.album .album-tab {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #f4f4f6;
+  color: #6b6b72;
+  font: inherit;
+  font-size: 18px;
+}
+
+.album .album-tab[aria-selected='true'] {
+  background: #8b3fb5;
+  color: #ffffff;
+}
+
+.album .album-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.album .card {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 64px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(20px, 3vmin, 26px);
+}
+
+.album .card.learned {
+  background: #f1e8f7;
+  color: #8b3fb5;
+}
+
+.album .card.fresh {
+  outline: 3px solid #e6398b;
+}
+
+.album .card.empty {
+  background: #f4f4f6;
+  border: 2px dashed #d3d1c7;
+}
+
+.album .badge {
+  position: absolute;
+  top: -9px;
+  right: -6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #e6398b;
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.album .album-empty {
+  font-size: 22px;
+  color: #6b6b72;
+}
+
 /* Phones, portrait: chrome moves into the layout so the stage keeps the rest. */
 @media (max-width: 600px) {
   .reading {
@@ -399,8 +509,13 @@ svg.item-view {
     left: 56px;
   }
 
-  .reading.menu {
+  .reading.menu,
+  .reading.album {
     display: flex;
+  }
+
+  .album .album-body {
+    padding: 64px 12px 16px;
   }
 
   .menu .menu-body {
@@ -473,8 +588,13 @@ svg.item-view {
     padding: 6px;
   }
 
-  .reading.menu {
+  .reading.menu,
+  .reading.album {
     display: flex;
+  }
+
+  .album .album-body {
+    padding: 64px 12px 16px;
   }
 
   .menu .menu-body {
