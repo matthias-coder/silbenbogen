@@ -1,4 +1,8 @@
-import type { Area } from '../domain/areas';
+import { stageProgress } from '../domain/album';
+import { countByStage } from '../domain/pool';
+import type { Progress } from '../domain/progress';
+import { STAGE_LABELS, STAGES, reasonFor, unit } from '../domain/stageInfo';
+import type { Stage } from '../domain/types';
 import { attachLongPress } from './longPress';
 
 const PARENT_PRESS_MS = 3000;
@@ -17,12 +21,15 @@ function h<K extends keyof HTMLElementTagNameMap>(
   return e;
 }
 
-/** Start menu: one big tile per practice area. */
+/** Start menu: one row per stage, "Alles gemischt", the album and the gear. */
 export function mountMenuScreen(
   root: HTMLElement,
   deps: {
-    areas: Area[];
-    onPick: (area: Area) => void;
+    known: ReadonlySet<string>;
+    progress: Progress;
+    name: string;
+    onPick: (stages: Stage[]) => void;
+    onOpenAlbum: () => void;
     onOpenParent: () => void;
     notice?: string;
   },
@@ -38,19 +45,46 @@ export function mountMenuScreen(
     onEnd: () => gear.classList.remove('holding'),
   });
 
-  const grid = h('div', 'areas', 'areas');
-  for (const area of deps.areas) {
-    const tile = h('button', `area-${area.id}`, 'area');
-    tile.type = 'button';
-    if (area.example) tile.appendChild(h('span', null, 'area-example', area.example));
-    tile.appendChild(h('span', null, 'area-title', area.title));
-    tile.addEventListener('click', () => deps.onPick(area));
-    grid.appendChild(tile);
+  const body = h('div', null, 'menu-body');
+  if (deps.name) body.appendChild(h('h1', 'greeting', 'greeting', `Hallo ${deps.name}!`));
+
+  const counts = countByStage(deps.known);
+  const available = STAGES.filter((s) => counts[s] > 0);
+  const list = h('div', 'stages', 'stages');
+  for (const s of STAGES) {
+    const row = h('button', `stage-${s}`, 'stage-row');
+    row.type = 'button';
+    const text = h('span', null, 'stage-text');
+    text.appendChild(h('span', null, 'stage-name', STAGE_LABELS[s]));
+    if (counts[s] > 0) {
+      const sp = stageProgress(s, deps.known, deps.progress);
+      const line = sp.practised || sp.learned > 0 ? `${sp.learned} von ${sp.total} sicher` : 'noch nicht geübt';
+      text.appendChild(h('span', null, 'stage-progress', line));
+      row.addEventListener('click', () => deps.onPick([s]));
+    } else {
+      row.classList.add('off');
+      row.setAttribute('aria-disabled', 'true');
+      text.appendChild(h('span', null, 'stage-reason', reasonFor(s, deps.known)));
+    }
+    row.append(h('span', null, 'stage-no', String(s)), text, h('span', null, 'stage-count', `${counts[s]} ${unit(s)}`));
+    list.appendChild(row);
   }
-  if (deps.areas.length === 0) {
-    grid.appendChild(h('p', 'empty', 'empty', 'Im Elternbereich Buchstaben auswählen.'));
+  body.appendChild(list);
+
+  const actions = h('div', null, 'menu-actions');
+  if (available.length >= 2) {
+    const mixed = h('button', 'mixed', 'mixed', 'Alles gemischt');
+    mixed.type = 'button';
+    mixed.addEventListener('click', () => deps.onPick([...available]));
+    actions.appendChild(mixed);
   }
-  screen.append(gear, grid);
+  const album = h('button', 'album', 'album-button', 'Meine Wörter');
+  album.type = 'button';
+  album.addEventListener('click', deps.onOpenAlbum);
+  actions.appendChild(album);
+  body.appendChild(actions);
+
+  screen.append(gear, body);
 
   let noticeTimer: ReturnType<typeof setTimeout> | undefined;
   if (deps.notice) {

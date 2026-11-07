@@ -1,6 +1,6 @@
 import '@fontsource/andika/400.css';
 import './styles.css';
-import { availableAreas, type Area } from './domain/areas';
+import { emptyProgress } from './domain/progress';
 import { buildPool, countByStage } from './domain/pool';
 import { loadSettings, saveSettings } from './storage/settings';
 import { mountMenuScreen } from './ui/menuScreen';
@@ -19,18 +19,22 @@ if (app) {
 
   const showMenu = (notice?: string): void => {
     unmount();
+    const settings = loadSettings();
     unmount = mountMenuScreen(app, {
-      areas: availableAreas(availableStages()),
+      known: new Set(settings.known),
+      progress: emptyProgress(),
+      name: settings.name,
       onPick: showReading,
+      onOpenAlbum: () => {},
       onOpenParent: showParent,
       notice,
     });
   };
 
-  const showReading = (area: Area): void => {
+  const showReading = (stages: Stage[]): void => {
     unmount();
     unmount = mountReadingScreen(app, {
-      pool: buildPool(new Set(loadSettings().known), area.stages),
+      pool: buildPool(new Set(loadSettings().known), stages),
       onOpenParent: showParent,
       onHome: () => showMenu(),
     });
