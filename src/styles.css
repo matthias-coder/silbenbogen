@@ -36,9 +36,13 @@ svg.item-view {
   height: clamp(44px, 6vmin, 60px);
   padding: 0;
   border: 0;
-  background: none;
-  font-size: 24px;
-  color: #94949c;
+  border-radius: 50%;
+  background: #8b3fb5;
+  font-size: clamp(26px, 4vmin, 34px);
+  line-height: 1;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(139, 63, 181, 0.35);
+  flex: none;
   touch-action: none;
 }
 
@@ -47,7 +51,7 @@ svg.item-view {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: conic-gradient(#8b3fb5 var(--ring), transparent 0);
+  background: conic-gradient(#e6398b var(--ring), transparent 0);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
   pointer-events: none;
@@ -575,8 +579,9 @@ svg.item-view {
   .reading .gear {
     position: relative;
     grid-area: 1 / 1;
-    width: 44px;
+    width: 36px;
     height: 36px;
+    font-size: 24px;
     margin: 0 0 0 4px;
   }
 
