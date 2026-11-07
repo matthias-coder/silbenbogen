@@ -50,6 +50,7 @@ if (app) {
         showMenu(`Gespeichert: ${parts}`);
       },
       onCancel: () => showMenu(),
+      onResetProgress: () => {},
     });
   };
 

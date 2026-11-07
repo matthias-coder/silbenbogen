@@ -580,48 +580,47 @@ svg.item-view {
   background: #fde8f2;
 }
 
-.stage-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.name-input {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 420px;
+  min-height: 56px;
+  padding: 0 16px;
+  border: 2px solid #dcdce1;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 22px;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
-.stage-row {
+.name-input:focus {
+  outline: none;
+  border-color: #8b3fb5;
+}
+
+.reset-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 16px;
-  min-height: 56px;
-  font-size: 22px;
+  margin-top: 24px;
 }
 
-.stage-row input {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  accent-color: #8b3fb5;
-}
-
-.stage-label {
-  flex: 1;
-}
-
-.stage-item {
-  display: flex;
-  flex-direction: column;
-}
-
-.stage-reason {
-  margin: 0 0 8px 52px;
+.reset-progress {
+  min-height: 48px;
+  padding: 0 20px;
+  border: 2px solid #c0392b;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #c0392b;
+  font: inherit;
   font-size: 18px;
-  color: #5c5c66;
 }
 
-.stage-reason[hidden] {
-  display: none;
-}
-
-.stage-count {
-  color: #5c5c66;
+.reset-done {
+  font-size: 18px;
+  color: #3b6d11;
 }
 
 .parent-footer {
