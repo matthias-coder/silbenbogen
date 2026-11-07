@@ -1,3 +1,4 @@
+import type { Outcome } from '../domain/progress';
 import { buildRound } from '../domain/round';
 import type { Item } from '../domain/types';
 import { attachLongPress } from './longPress';
@@ -6,7 +7,7 @@ import { createItemView } from './itemView';
 
 const ROUND_SIZE = 10;
 const PARENT_PRESS_MS = 3000;
-const SKIP_PRESS_MS = 2000;
+const MAX_TRIES = 3;
 const NOTICE_MS = 2500;
 const RESIZE_TOLERANCE = 0.05;
 
@@ -17,6 +18,9 @@ function measure(el: Element): { width: number; height: number } | undefined {
 }
 
 type Result = 'read' | 'skipped';
+
+const newCardsText = (n: number): string =>
+  n === 1 ? '1 neues Wort im Album!' : `${n} neue Wörter im Album!`;
 
 function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -37,6 +41,9 @@ export function mountReadingScreen(
     pool: Item[];
     onOpenParent: () => void;
     onHome?: () => void;
+    onOutcome?: (id: string, o: Outcome) => boolean;
+    weight?: (item: Item) => number;
+    name?: string;
     rng?: () => number;
     notice?: string;
   },
@@ -69,13 +76,9 @@ export function mountReadingScreen(
   }
   root.replaceChildren(screen);
 
-  let detachNext: ReturnType<typeof attachLongPress> | null = null;
-  const cancelHold = () => detachNext?.cancel();
-  let pressedWhileLocked = false;
   let stopWatching = () => {};
   const unmount = () => {
     detachGear();
-    detachNext?.();
     stopWatching();
     clearTimeout(noticeTimer);
     view?.destroy();
@@ -88,33 +91,45 @@ export function mountReadingScreen(
 
   const dots = h('div', 'dots', 'dots');
   const dotEls = Array.from({ length: ROUND_SIZE }, () => dots.appendChild(h('span', null, 'dot')));
+  const tries = h('div', 'tries', 'tries');
+  const tryEls = Array.from({ length: MAX_TRIES }, () => tries.appendChild(h('span', null, 'try')));
   const stage = h('div', null, 'stage');
-  const next = h('button', 'next', 'next', 'Weiter');
-  next.type = 'button';
-  screen.append(dots, stage, next);
+  const again = h('button', 'again', 'rate again');
+  const good = h('button', 'good', 'rate good', 'Gut gelesen');
+  again.type = 'button';
+  good.type = 'button';
+  const rating = h('div', null, 'rating');
+  rating.append(again, good);
+  screen.append(dots, tries, stage, rating);
 
   let round: Item[] = [];
   let index = 0;
+  let attempt = 1;
   let results: Result[] = [];
+  let newCards = 0;
 
   const showDots = () =>
     dotEls.forEach((d, i) => {
       d.classList.toggle('on', results[i] === 'read');
       d.classList.toggle('skipped', results[i] === 'skipped');
     });
+  const showTries = () => {
+    tryEls.forEach((t, i) => t.classList.toggle('on', i < attempt));
+    again.textContent = attempt >= MAX_TRIES ? 'Überspringen' : 'Nochmal';
+  };
 
-  const isLocked = () => next.classList.contains('locked');
-  const lock = () => {
-    next.classList.add('locked');
-    next.classList.remove('ready', 'holding');
-    next.setAttribute('aria-disabled', 'true');
-  };
-  const unlock = () => {
-    cancelHold();
-    next.classList.remove('locked', 'holding');
-    next.removeAttribute('aria-disabled');
-    next.classList.add('ready');
-  };
+  const buttons = [again, good];
+  const isLocked = () => good.classList.contains('locked');
+  const lock = () =>
+    buttons.forEach((b) => {
+      b.classList.add('locked');
+      b.setAttribute('aria-disabled', 'true');
+    });
+  const unlock = () =>
+    buttons.forEach((b) => {
+      b.classList.remove('locked');
+      b.removeAttribute('aria-disabled');
+    });
 
   function clearStage(): void {
     view?.destroy();
@@ -124,10 +139,12 @@ export function mountReadingScreen(
 
   function showItem(): void {
     clearStage();
-    cancelHold();
-    next.hidden = false;
+    rating.hidden = false;
+    tries.hidden = false;
+    showTries();
     lock();
     const holder = h('div', 'item', 'item');
+    holder.dataset.itemId = round[index].id;
     stage.appendChild(holder);
     const fit = measure(holder);
     builtFit = null;
@@ -165,51 +182,54 @@ export function mountReadingScreen(
 
   function showDone(): void {
     clearStage();
-    next.hidden = true;
+    rating.hidden = true;
+    tries.hidden = true;
     const done = h('div', 'done', 'done');
-    const again = h('button', 'again', 'again', 'Nochmal');
-    again.type = 'button';
-    again.addEventListener('click', startRound);
+    const restart = h('button', 'restart', 'restart', 'Nochmal');
+    restart.type = 'button';
+    restart.addEventListener('click', startRound);
     const read = results.filter((r) => r === 'read').length;
     done.append(
-      h('p', null, 'done-title', 'Geschafft!'),
-      h('p', 'score', 'score', `${read} von ${ROUND_SIZE} gelesen`),
-      again,
+      h('p', null, 'done-title', deps.name ? `Geschafft, ${deps.name}!` : 'Geschafft!'),
+      h('p', 'score', 'score', `${read} von ${ROUND_SIZE} gut gelesen`),
     );
+    if (newCards > 0) done.appendChild(h('p', 'new-cards', 'new-cards', newCardsText(newCards)));
+    done.appendChild(restart);
     stage.appendChild(done);
   }
 
   function startRound(): void {
-    round = buildRound(deps.pool, deps.rng, ROUND_SIZE);
+    round = buildRound(deps.pool, deps.rng, ROUND_SIZE, deps.weight);
     index = 0;
+    attempt = 1;
     results = [];
+    newCards = 0;
     showDots();
     showItem();
   }
 
-  function advance(result: Result): void {
-    results[index] = result;
+  function finish(outcome: Outcome): void {
+    if (deps.onOutcome?.(round[index].id, outcome)) newCards++;
+    results[index] = outcome === 'skipped' ? 'skipped' : 'read';
     index++;
+    attempt = 1;
     showDots();
     if (index >= round.length) showDone();
     else showItem();
   }
 
-  next.addEventListener('pointerdown', () => {
-    pressedWhileLocked = isLocked();
+  good.addEventListener('click', () => {
+    if (isLocked()) return;
+    finish(attempt === 1 ? 'first' : 'later');
   });
-  next.addEventListener('click', () => {
-    const fromLockedPress = pressedWhileLocked;
-    pressedWhileLocked = false;
-    if (!fromLockedPress && !isLocked()) advance('read');
-  });
-  detachNext = attachLongPress(next, SKIP_PRESS_MS, () => {
-    if (isLocked()) advance('skipped');
-  }, {
-    onStart: () => {
-      if (isLocked()) next.classList.add('holding');
-    },
-    onEnd: () => next.classList.remove('holding'),
+  again.addEventListener('click', () => {
+    if (isLocked()) return;
+    if (attempt >= MAX_TRIES) {
+      finish('skipped');
+      return;
+    }
+    attempt++;
+    showItem();
   });
 
   startRound();

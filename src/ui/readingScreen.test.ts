@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { randomSyllables } from '../domain/pool';
+import type { Outcome } from '../domain/progress';
 import { makeWord } from '../domain/stage';
 import { mulberry32 } from '../testing/rng';
 import { mountReadingScreen } from './readingScreen';
@@ -18,6 +19,7 @@ class FakePoint {
 describe('mountReadingScreen', () => {
   let root: HTMLElement;
   let onOpenParent: Mock<() => void>;
+  let onOutcome: Mock<(id: string, o: Outcome) => boolean>;
   let unmount: () => void;
   const q = (id: string) => root.querySelector(`[data-testid="${id}"]`) as HTMLElement;
 
@@ -25,18 +27,7 @@ describe('mountReadingScreen', () => {
   const down = (el: Element) => el.dispatchEvent(new Event('pointerdown', { bubbles: true }));
   const up = (el: Element) => el.dispatchEvent(new Event('pointerup', { bubbles: true }));
   const itemEl = () => q('item').querySelector('svg')!;
-  const hold = (ms: number) => {
-    down(q('next'));
-    vi.advanceTimersByTime(ms);
-    up(q('next'));
-  };
-  const skip = () => hold(2000);
-  /** A real tap: pointerdown, pointerup, then the click the browser generates. */
-  const tap = () => {
-    down(q('next'));
-    up(q('next'));
-    q('next').click();
-  };
+  const itemId = () => q('item').dataset.itemId;
   /** Drags every handle of the current item to the end of its arc. */
   const complete = () => {
     const svg = itemEl();
@@ -62,7 +53,8 @@ describe('mountReadingScreen', () => {
     root = document.createElement('div');
     document.body.appendChild(root);
     onOpenParent = vi.fn();
-    unmount = mountReadingScreen(root, { pool: pool(), onOpenParent, rng: mulberry32(1) });
+    onOutcome = vi.fn(() => false);
+    unmount = mountReadingScreen(root, { pool: pool(), onOpenParent, onOutcome, rng: mulberry32(1) });
   });
   afterEach(() => {
     unmount();
@@ -73,89 +65,161 @@ describe('mountReadingScreen', () => {
     delete (SVGSVGElement.prototype as unknown as Record<string, unknown>).setPointerCapture;
   });
 
-  it('shows one item, ten empty dots and the next button', () => {
+  const good = () => q('good').click();
+  const again = () => q('again').click();
+  const text = () => q('item').textContent;
+  const outcomes = () => onOutcome.mock.calls.map((c) => c[1]);
+
+  it('shows one item, ten empty dots, three try dots and both rating buttons', () => {
     expect(q('item').querySelectorAll('svg')).toHaveLength(1);
     expect(q('dots').children).toHaveLength(10);
     expect(q('dots').querySelectorAll('.on')).toHaveLength(0);
-    expect(q('next').textContent).toBe('Weiter');
+    expect(q('tries').children).toHaveLength(3);
+    expect(q('tries').querySelectorAll('.on')).toHaveLength(1);
+    expect(q('again').textContent).toBe('Nochmal');
+    expect(q('good').textContent).toBe('Gut gelesen');
+    expect(q('next')).toBeNull();
     expect(q('done')).toBeNull();
   });
 
-  it('starts with a locked next button that ignores clicks', () => {
-    expect(q('next').classList.contains('locked')).toBe(true);
-    expect(q('next').getAttribute('aria-disabled')).toBe('true');
-    expect(q('next').hasAttribute('disabled')).toBe(false);
-    const before = itemEl();
-    q('next').click();
-    expect(itemEl()).toBe(before);
-    expect(q('dots').querySelectorAll('.on, .skipped')).toHaveLength(0);
-  });
-
-  it('skips by holding the locked next button for 2 seconds', () => {
-    const before = itemEl();
-    down(q('next'));
-    expect(q('next').classList.contains('holding')).toBe(true);
-    vi.advanceTimersByTime(1999);
-    expect(itemEl()).toBe(before);
-    vi.advanceTimersByTime(1);
-    expect(itemEl()).not.toBe(before);
-    expect(dot(0).classList.contains('skipped')).toBe(true);
-    expect(dot(0).classList.contains('on')).toBe(false);
-    expect(q('next').classList.contains('holding')).toBe(false);
-    up(q('next'));
-  });
-
-  it('cancels the skip when released early', () => {
-    const before = itemEl();
-    hold(1999);
-    vi.advanceTimersByTime(5000);
-    expect(itemEl()).toBe(before);
-    expect(q('next').classList.contains('holding')).toBe(false);
-    expect(dot(0).classList.contains('skipped')).toBe(false);
-  });
-
-  it('unlocks next once the item is traced, then advances on click', () => {
-    complete();
-    expect(q('next').classList.contains('locked')).toBe(false);
-    expect(q('next').hasAttribute('aria-disabled')).toBe(false);
-    expect(q('next').classList.contains('ready')).toBe(true);
-    const before = itemEl();
-    tap();
-    expect(itemEl()).not.toBe(before);
-    expect(dot(0).classList.contains('on')).toBe(true);
-    expect(q('next').classList.contains('locked')).toBe(true);
-  });
-
-  it('does not skip when an unlocked button is held', () => {
-    complete();
-    const before = itemEl();
-    hold(2500);
-    expect(itemEl()).toBe(before);
-    expect(q('next').classList.contains('holding')).toBe(false);
-  });
-
-  it('shows the read count after ten tasks and restarts with Nochmal', () => {
-    for (let i = 0; i < 3; i++) {
-      complete();
-      tap();
+  it('locks both buttons until the item is traced and ignores clicks meanwhile', () => {
+    for (const id of ['again', 'good']) {
+      expect(q(id).classList.contains('locked')).toBe(true);
+      expect(q(id).getAttribute('aria-disabled')).toBe('true');
     }
-    for (let i = 0; i < 7; i++) skip();
+    const before = itemEl();
+    good();
+    again();
+    expect(itemEl()).toBe(before);
+    expect(onOutcome).not.toHaveBeenCalled();
+    complete();
+    for (const id of ['again', 'good']) {
+      expect(q(id).classList.contains('locked')).toBe(false);
+      expect(q(id).hasAttribute('aria-disabled')).toBe(false);
+    }
+  });
+
+  it('records a first-try read and moves on', () => {
+    const id = itemId();
+    complete();
+    good();
+    expect(onOutcome).toHaveBeenCalledWith(id, 'first');
+    expect(dot(0).classList.contains('on')).toBe(true);
+    expect(q('good').classList.contains('locked')).toBe(true);
+    expect(q('tries').querySelectorAll('.on')).toHaveLength(1);
+  });
+
+  it('repeats the same item on Nochmal and records a later read', () => {
+    const id = itemId();
+    const first = text();
+    complete();
+    again();
+    expect(text()).toBe(first);
+    expect(q('tries').querySelectorAll('.on')).toHaveLength(2);
+    expect(q('good').classList.contains('locked')).toBe(true);
+    complete();
+    again();
+    expect(text()).toBe(first);
+    expect(q('tries').querySelectorAll('.on')).toHaveLength(3);
+    complete();
+    good();
+    expect(onOutcome).toHaveBeenCalledTimes(1);
+    expect(onOutcome).toHaveBeenCalledWith(id, 'later');
+    expect(dot(0).classList.contains('on')).toBe(true);
+  });
+
+  it('turns Nochmal into Überspringen on the third try', () => {
+    const id = itemId();
+    complete();
+    again();
+    expect(q('again').textContent).toBe('Nochmal');
+    complete();
+    again();
+    expect(q('again').textContent).toBe('Überspringen');
+    complete();
+    again();
+    expect(onOutcome).toHaveBeenCalledWith(id, 'skipped');
+    expect(dot(0).classList.contains('skipped')).toBe(true);
+    expect(q('again').textContent).toBe('Nochmal');
+  });
+
+  it('records nothing when leaving mid-word', () => {
+    unmount();
+    const onHome = vi.fn();
+    unmount = mountReadingScreen(root, { pool: pool(), onOpenParent, onOutcome, onHome, rng: mulberry32(1) });
+    complete();
+    again();
+    q('home').click();
+    expect(onHome).toHaveBeenCalledOnce();
+    expect(onOutcome).not.toHaveBeenCalled();
+  });
+
+  const finish = (pattern: ('good' | 'later' | 'skip')[]) => {
+    for (const step of pattern) {
+      complete();
+      if (step === 'good') good();
+      else if (step === 'later') {
+        again();
+        complete();
+        good();
+      } else {
+        again();
+        complete();
+        again();
+        complete();
+        again();
+      }
+    }
+  };
+
+  it('shows the score after ten tasks and restarts', () => {
+    finish(['good', 'good', 'later', ...Array(7).fill('skip')]);
     expect(q('done').textContent).toContain('Geschafft!');
-    expect(q('score').textContent).toBe('3 von 10 gelesen');
+    expect(q('score').textContent).toBe('3 von 10 gut gelesen');
+    expect(q('new-cards')).toBeNull();
     expect(q('item')).toBeNull();
     expect([...q('dots').children].map((d) => d.className)).toEqual([
       ...Array(3).fill('dot on'),
       ...Array(7).fill('dot skipped'),
     ]);
-    q('again').click();
+    expect(outcomes()).toEqual(['first', 'first', 'later', ...Array(7).fill('skipped')]);
+    q('restart').click();
     expect(q('done')).toBeNull();
     expect(q('dots').querySelectorAll('.on, .skipped')).toHaveLength(0);
     expect(q('item').querySelectorAll('svg')).toHaveLength(1);
   });
 
-  it('shows 0 von 10 when everything was skipped', () => {
-    for (let i = 0; i < 10; i++) skip();
-    expect(q('score').textContent).toBe('0 von 10 gelesen');
+  it('greets by name and counts new album cards on the done screen', () => {
+    unmount();
+    let n = 0;
+    onOutcome.mockImplementation(() => ++n <= 2);
+    unmount = mountReadingScreen(root, { pool: pool(), onOpenParent, onOutcome, name: 'Lena', rng: mulberry32(1) });
+    finish(Array(10).fill('good'));
+    expect(q('done').textContent).toContain('Geschafft, Lena!');
+    expect(q('new-cards')!.textContent).toBe('2 neue Wörter im Album!');
+  });
+
+  it('uses the singular for one new card', () => {
+    unmount();
+    let n = 0;
+    onOutcome.mockImplementation(() => ++n === 1);
+    unmount = mountReadingScreen(root, { pool: pool(), onOpenParent, onOutcome, rng: mulberry32(1) });
+    finish(Array(10).fill('good'));
+    expect(q('new-cards')!.textContent).toBe('1 neues Wort im Album!');
+  });
+
+  it('passes the weight to the round', () => {
+    unmount();
+    const items = pool().slice(0, 2);
+    const heavy = items[1].id;
+    unmount = mountReadingScreen(root, {
+      pool: items,
+      onOpenParent,
+      onOutcome,
+      weight: (i) => (i.id === heavy ? 1e6 : 1),
+      rng: mulberry32(1),
+    });
+    expect(itemId()).toBe(heavy);
   });
 
   it('prevents the context menu', () => {
@@ -240,13 +304,13 @@ describe('mountReadingScreen', () => {
 
     it('rebuilds the current item with the new fit on resize and relocks it', () => {
       complete();
-      expect(q('next').classList.contains('locked')).toBe(false);
+      expect(q('good').classList.contains('locked')).toBe(false);
       size = { w: 343, h: 660 };
       const before = itemEl();
       window.dispatchEvent(new Event('resize'));
       expect(itemEl()).not.toBe(before);
       expect(itemEl().hasAttribute('width')).toBe(true);
-      expect(q('next').classList.contains('locked')).toBe(true);
+      expect(q('good').classList.contains('locked')).toBe(true);
       const again = itemEl();
       window.dispatchEvent(new Event('resize'));
       expect(itemEl()).toBe(again);
@@ -316,37 +380,6 @@ describe('mountReadingScreen', () => {
       unmount();
       expect(disconnect).toHaveBeenCalledTimes(1);
     });
-
-    it('cancels a running skip hold when the item is rebuilt', () => {
-      const before = itemEl();
-      down(q('next'));
-      vi.advanceTimersByTime(1000);
-      size = { w: 343, h: 660 };
-      window.dispatchEvent(new Event('resize'));
-      expect(q('next').classList.contains('holding')).toBe(false);
-      const rebuilt = itemEl();
-      expect(rebuilt).not.toBe(before);
-      vi.advanceTimersByTime(5000);
-      expect(itemEl()).toBe(rebuilt);
-      expect(dot(0).classList.contains('skipped')).toBe(false);
-    });
-  });
-
-  it('cancels the hold when the item completes during it, and the release click does not advance', () => {
-    const before = itemEl();
-    down(q('next'));
-    vi.advanceTimersByTime(500);
-    complete();
-    expect(q('next').classList.contains('holding')).toBe(false);
-    vi.advanceTimersByTime(5000);
-    expect(itemEl()).toBe(before);
-    up(q('next'));
-    q('next').click();
-    expect(itemEl()).toBe(before);
-    expect(q('next').classList.contains('ready')).toBe(true);
-    tap();
-    expect(itemEl()).not.toBe(before);
-    expect(dot(0).classList.contains('on')).toBe(true);
   });
 
   it('clears the notice timer on unmount', () => {

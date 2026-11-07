@@ -147,8 +147,7 @@ svg.item-view {
   color: #6b6b72;
 }
 
-.reading .next,
-.reading .again {
+.reading .restart {
   min-height: 64px;
   padding: 0 48px;
   border: 0;
@@ -159,51 +158,79 @@ svg.item-view {
   font-size: 28px;
 }
 
-.reading .next {
-  position: absolute;
-  isolation: isolate;
-  overflow: hidden;
-  right: 24px;
-  bottom: 24px;
-  min-width: 200px;
-  min-height: clamp(56px, 8vmin, 88px);
-  font-size: clamp(22px, 3.6vmin, 36px);
+.reading .new-cards {
+  margin: -16px 0 0;
+  font-size: clamp(20px, 4vmin, 30px);
+  color: #e6398b;
 }
 
-.reading .next[hidden] {
+.reading .tries {
+  position: absolute;
+  bottom: calc(24px + clamp(56px, 8vmin, 88px) / 2 - 9px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+}
+
+.reading .tries[hidden],
+.reading .rating[hidden] {
   display: none;
 }
 
-.reading .next.locked {
+.reading .try {
+  width: clamp(12px, 2vmin, 18px);
+  height: clamp(12px, 2vmin, 18px);
+  border-radius: 50%;
+  background: #dcdce1;
+}
+
+.reading .try.on {
+  background: #ef9f27;
+}
+
+.reading .rating {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  pointer-events: none;
+}
+
+.reading .rate {
+  pointer-events: auto;
+  min-width: 200px;
+  min-height: clamp(56px, 8vmin, 88px);
+  padding: 0 32px;
+  border: 0;
+  border-radius: 16px;
+  color: #ffffff;
+  font: inherit;
+  font-size: clamp(22px, 3.6vmin, 36px);
+}
+
+.reading .rate.again {
+  background: #ef9f27;
+}
+
+.reading .rate.good {
+  background: #2e8b57;
+}
+
+.reading .rate.again::before {
+  content: '↻ ';
+}
+
+.reading .rate.good::before {
+  content: '✓ ';
+}
+
+.reading .rate.locked {
   background: #dcdce1;
   color: #6b6b72;
-  box-shadow: none;
-  outline: none;
-}
-
-.reading .next.locked::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: #b9b9c0;
-  transform: scaleX(0);
-  transform-origin: left center;
-  z-index: -1;
-}
-
-.reading .next.locked.holding::before {
-  animation: hold-fill 2s linear forwards;
-}
-
-@keyframes hold-fill {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
-}
-
-.reading .next.ready {
-  outline: 4px solid #e6398b;
-  outline-offset: 3px;
-  box-shadow: 0 6px 16px rgba(139, 63, 181, 0.45);
 }
 
 .reading .home {
@@ -403,15 +430,26 @@ svg.item-view {
     padding: 12px;
   }
 
-  .reading .next {
+  .reading .tries {
+    top: 52px;
+    bottom: auto;
+  }
+
+  .reading .rating {
     position: static;
     grid-area: 3 / 1 / 4 / 3;
     margin: 0 12px 12px;
+    gap: 12px;
+  }
+
+  .reading .rate {
+    flex: 1;
     min-width: 0;
+    padding: 0 12px;
   }
 }
 
-/* Low landscape screens: slim top bar, Weiter at the right edge. */
+/* Low landscape screens: slim top bar, rating buttons at the right edge. */
 @media (orientation: landscape) and (max-height: 500px) {
   .reading {
     display: grid;
@@ -463,14 +501,25 @@ svg.item-view {
     max-width: calc(100vw - 140px);
   }
 
-  .reading .next {
+  .reading .tries {
+    top: 12px;
+    bottom: auto;
+  }
+
+  .reading .rating {
     position: static;
     grid-area: 2 / 3;
     align-self: center;
+    flex-direction: column;
+    gap: 10px;
     margin: 0 12px 0 0;
-    min-width: 88px;
-    min-height: 64px;
+  }
+
+  .reading .rate {
+    min-width: 150px;
+    min-height: 56px;
     padding: 0 16px;
+    font-size: 20px;
   }
 }
 
