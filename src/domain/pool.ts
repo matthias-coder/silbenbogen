@@ -1,6 +1,6 @@
 import { VOWELS } from './graphemes';
 import { WORDS } from './wordlist';
-import type { Item, Settings, Stage } from './types';
+import type { Item, Stage } from './types';
 
 export const ONSET: readonly string[] = [...'bdfghjklmnprstwz'];
 export const CODA: readonly string[] = [...'fklmnprst'];
@@ -52,9 +52,8 @@ export function countByStage(known: ReadonlySet<string>): Record<Stage, number> 
   return counts;
 }
 
-export function buildPool(settings: Settings): Item[] {
-  const known = new Set(settings.known);
-  return settings.stages.flatMap((stage) => itemsForStage(stage, known));
+export function buildPool(known: ReadonlySet<string>, stages: readonly Stage[]): Item[] {
+  return stages.flatMap((stage) => itemsForStage(stage, known));
 }
 
 /** Drops stages that have no possible tasks. */

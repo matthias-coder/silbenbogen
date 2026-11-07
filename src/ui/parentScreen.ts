@@ -49,7 +49,7 @@ export function mountParentScreen(
   deps: { settings: Settings; onDone: (s: Settings) => void; onCancel: () => void },
 ): () => void {
   const known = new Set(deps.settings.known);
-  const wanted = new Set<Stage>(deps.settings.stages);
+  const wanted = new Set<Stage>(STAGES);
 
   const screen = el('div', 'parent');
   const body = el('div', 'parent-body');
@@ -128,11 +128,7 @@ export function mountParentScreen(
   done.type = 'button';
   done.dataset.testid = 'done';
   done.addEventListener('click', () => {
-    deps.onDone({
-      version: 1,
-      known: [...known],
-      stages: activeStages(),
-    });
+    deps.onDone({ version: 2, known: [...known], name: deps.settings.name });
   });
   const actions = el('div', 'parent-actions');
   actions.append(cancel, done);

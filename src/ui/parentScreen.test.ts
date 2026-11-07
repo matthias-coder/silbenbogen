@@ -46,30 +46,16 @@ describe('mountParentScreen', () => {
     expect(root.textContent).toContain('Was wird geübt');
   });
 
-  it('reacts to selection changes and reports the result via onDone', () => {
+  it('reports the known letters and keeps the name via onDone', () => {
     key('r').click();
     expect(count(1)).toBe('30 Silben');
-
-    stage(1).click();
-    expect(hint().hidden).toBe(false);
-    expect(done().disabled).toBe(true);
-    stage(3).click();
-    expect(done().disabled).toBe(false);
-
-    for (const v of ['a', 'e', 'i', 'o', 'u']) key(v).click();
-    expect(stage(3).checked).toBe(false);
-    expect(stage(3).disabled).toBe(true);
-    expect(done().disabled).toBe(true);
-
-    key('a').click();
-    stage(1).click();
     done().click();
     expect(onDone).toHaveBeenCalledWith({
-      version: 1,
+      version: 2,
       known: expect.arrayContaining(['a', 'm', 'l', 's', 'n', 'f', 'r']),
-      stages: [1, 3],
+      name: '',
     });
-    expect(onDone.mock.calls[0][0].known).toHaveLength(7);
+    expect(onDone.mock.calls[0][0].known).toHaveLength(11);
   });
 
   it('has a page title and two section headings', () => {
@@ -78,17 +64,6 @@ describe('mountParentScreen', () => {
       'Bekannte Buchstaben',
       'Was wird geübt',
     ]);
-  });
-
-  it('summarises what is practised', () => {
-    // The word count follows the word list, so it is derived instead of hard-coded.
-    const words = countByStage(new Set(DEFAULT_SETTINGS.known))[3];
-    expect(words).toBeGreaterThan(0);
-    expect(summary()).toBe('So wird geübt: 25 Silben');
-    stage(3).click();
-    expect(summary()).toBe(`So wird geübt: 25 Silben und ${words} Wörter`);
-    stage(1).click();
-    expect(summary()).toBe(`So wird geübt: ${words} Wörter`);
   });
 
   it('explains why a stage is disabled', () => {
@@ -107,23 +82,6 @@ describe('mountParentScreen', () => {
     for (const v of vowels) key(v).click();
     expect(count(5)).toBe('0 Wörter');
     expect(reason(5).textContent).toBe('Mit diesen Buchstaben gibt es dafür noch keine Wörter.');
-  });
-
-  it('remembers wanted stages while letters are toggled', () => {
-    stage(3).click();
-    for (const v of vowels) key(v).click();
-    expect(stage(3).checked).toBe(false);
-    expect(stage(3).disabled).toBe(true);
-    expect(done().disabled).toBe(true);
-    expect(hint().hidden).toBe(false);
-    expect(summary()).toBe('');
-    key('a').click();
-    expect(stage(3).disabled).toBe(false);
-    expect(stage(3).checked).toBe(true);
-    expect(stage(1).checked).toBe(true);
-    expect(hint().hidden).toBe(true);
-    done().click();
-    expect(onDone.mock.calls[0][0].stages).toEqual([1, 3]);
   });
 
   it('cancels without saving', () => {

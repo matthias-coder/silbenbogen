@@ -57,7 +57,7 @@ describe('countByStage / buildPool / reconcileStages', () => {
   });
 
   it('builds the pool from the selected stages', () => {
-    expect(buildPool({ version: 1, known: [...D], stages: [1, 3] }).length).toBe(
+    expect(buildPool(new Set(D), [1, 3]).length).toBe(
       countByStage(D)[1] + countByStage(D)[3],
     );
   });

@@ -10,7 +10,7 @@ export interface Item {
   keys: string[];
 }
 export interface Settings {
-  version: 1;
+  version: 2;
   known: string[];
-  stages: Stage[];
+  name: string;
 }
