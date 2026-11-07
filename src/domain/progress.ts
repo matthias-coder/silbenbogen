@@ -35,7 +35,9 @@ export function recordOutcome(
   if (o === 'first') {
     next.streak = Math.min(LEARNED_STREAK, prev.streak + 1);
     next.level = Math.max(0, prev.level - 1);
-  } else if (o === 'skipped') {
+  } else if (o === 'later') {
+    next.level = Math.min(MAX_LEVEL, Math.max(prev.level, START_LEVEL) + 1);
+  } else {
     next.streak = 0;
     next.level = Math.min(MAX_LEVEL, prev.level + 2);
   }

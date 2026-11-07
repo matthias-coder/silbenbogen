@@ -51,7 +51,20 @@ describe('weightOf', () => {
     expect(weightOf(run(['skipped', 'skipped']).p, 'wort-mama')).toBe(8);
     expect(weightOf(run(['first', 'first', 'first', 'first']).p, 'wort-mama')).toBe(1);
     expect(weightOf(run(['first', 'first', 'first', 'first', 'first', 'first']).p, 'wort-mama')).toBe(1);
-    expect(weightOf(run(['later']).p, 'wort-mama')).toBe(3);
+  });
+});
+
+describe('stumbles', () => {
+  it('makes a word read only on try 2 or 3 come up more often, but less than a skip', () => {
+    expect(weightOf(run(['later']).p, 'wort-mama')).toBe(5);
+    expect(weightOf(run(['later', 'later']).p, 'wort-mama')).toBe(8);
+    expect(weightOf(run(['skipped']).p, 'wort-mama')).toBe(8);
+  });
+
+  it('lifts a sure word that becomes shaky above the unknown weight', () => {
+    const sure = run(['first', 'first', 'first', 'first']).p;
+    expect(weightOf(sure, 'wort-mama')).toBe(1);
+    expect(weightOf(run(['later'], 'wort-mama', sure).p, 'wort-mama')).toBe(5);
   });
 });
 
