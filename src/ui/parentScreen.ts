@@ -1,20 +1,7 @@
 import { GROUPS, LETTERS } from '../domain/graphemes';
+import { STAGE_LABELS, STAGES, reasonFor } from '../domain/stageInfo';
 import { countByStage } from '../domain/pool';
 import type { Settings, Stage } from '../domain/types';
-
-const STAGE_LABELS: Record<Stage, string> = {
-  1: 'Mitlaut + Selbstlaut (Ma, Se)',
-  2: 'Selbstlaut + Mitlaut (Am, El)',
-  3: 'Wörter aus Zweier-Silben (Ma-ma, Na-se)',
-  4: 'Silben mit drei Lauten (Mut, Son-ne)',
-  5: 'Buchstabengruppen (Schu-le, Ei-mer)',
-  6: 'Mehrere Mitlaute (Blu-me, Brot)',
-};
-const STAGES: readonly Stage[] = [1, 2, 3, 4, 5, 6];
-
-const REASON_SYLLABLES = 'Dafür braucht es mindestens einen Mitlaut und einen Selbstlaut.';
-const REASON_GROUP = 'Dafür fehlt eine Buchstabengruppe (z. B. Sch, Ei, Au).';
-const REASON_WORDS = 'Mit diesen Buchstaben gibt es dafür noch keine Wörter.';
 
 /** "25 Silben und 30 Wörter" for the given stages; empty when nothing is practised. */
 export function practiceParts(counts: Record<Stage, number>, stages: Iterable<Stage>): string {
@@ -140,12 +127,6 @@ export function mountParentScreen(
     return STAGES.filter((s) => wanted.has(s) && counts[s] > 0);
   };
 
-  const reasonFor = (s: Stage): string => {
-    if (s <= 2) return REASON_SYLLABLES;
-    if (s === 5 && !GROUPS.some((g) => known.has(g))) return REASON_GROUP;
-    return REASON_WORDS;
-  };
-
   function refresh(): void {
     const counts = countByStage(known);
     for (const [k, b] of buttons) b.setAttribute('aria-pressed', String(known.has(k)));
@@ -156,7 +137,7 @@ export function mountParentScreen(
       counters.get(s)!.textContent = `${counts[s]} ${s <= 2 ? 'Silben' : 'Wörter'}`;
       const reason = reasons.get(s)!;
       reason.hidden = available;
-      reason.textContent = available ? '' : reasonFor(s);
+      reason.textContent = available ? '' : reasonFor(s, known);
     }
     const active = activeStages();
     const parts = practiceParts(counts, active);
