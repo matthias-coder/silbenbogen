@@ -208,6 +208,15 @@ describe('mountReadingScreen', () => {
     u();
   });
 
+  it('shows a home button only when onHome is given, and calls it on tap', () => {
+    expect(q('home')).toBeNull();
+    unmount();
+    const onHome = vi.fn();
+    unmount = mountReadingScreen(root, { pool: pool(), onOpenParent, onHome, rng: mulberry32(1) });
+    q('home').click();
+    expect(onHome).toHaveBeenCalledOnce();
+  });
+
   it('empties the root on unmount', () => {
     unmount();
     expect(root.childElementCount).toBe(0);

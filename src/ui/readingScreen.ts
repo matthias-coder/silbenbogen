@@ -33,7 +33,13 @@ function h<K extends keyof HTMLElementTagNameMap>(
 
 export function mountReadingScreen(
   root: HTMLElement,
-  deps: { pool: Item[]; onOpenParent: () => void; rng?: () => number; notice?: string },
+  deps: {
+    pool: Item[];
+    onOpenParent: () => void;
+    onHome?: () => void;
+    rng?: () => number;
+    notice?: string;
+  },
 ): () => void {
   const screen = h('div', null, 'reading');
   screen.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -46,6 +52,15 @@ export function mountReadingScreen(
     onEnd: () => gear.classList.remove('holding'),
   });
   screen.appendChild(gear);
+  if (deps.onHome) {
+    const home = h('button', 'home', 'home');
+    home.type = 'button';
+    home.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 10v9.5h5v-6h3v6h5V10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    home.setAttribute('aria-label', 'Zurück zur Auswahl');
+    home.addEventListener('click', deps.onHome);
+    screen.appendChild(home);
+  }
   let noticeTimer: ReturnType<typeof setTimeout> | undefined;
   if (deps.notice) {
     const notice = h('div', 'notice', 'notice', deps.notice);
