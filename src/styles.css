@@ -31,7 +31,7 @@ svg.item-view {
 .reading .gear {
   position: absolute;
   top: 12px;
-  left: 12px;
+  right: 12px;
   width: clamp(44px, 6vmin, 60px);
   height: clamp(44px, 6vmin, 60px);
   padding: 0;
@@ -92,7 +92,7 @@ svg.item-view {
 .reading .dots {
   position: absolute;
   top: 20px;
-  right: 24px;
+  left: 24px;
   display: flex;
   gap: 10px;
 }
@@ -240,7 +240,7 @@ svg.item-view {
 .reading .home {
   position: absolute;
   top: 12px;
-  left: calc(24px + clamp(44px, 6vmin, 60px));
+  right: calc(24px + clamp(44px, 6vmin, 60px));
   width: clamp(44px, 6vmin, 60px);
   height: clamp(44px, 6vmin, 60px);
   padding: 8px;
@@ -390,8 +390,8 @@ svg.item-view {
   overflow-y: auto;
 }
 
-.album .home {
-  left: 12px;
+.reading.album .home {
+  right: 12px;
 }
 
 .album .album-body {
@@ -498,19 +498,22 @@ svg.item-view {
 @media (max-width: 600px) {
   .reading {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 1fr auto;
     grid-template-rows: auto minmax(0, 1fr) auto;
   }
 
   .reading .gear {
     position: relative;
-    grid-area: 1 / 1;
-    margin: 4px 0 0 4px;
+    grid-area: 1 / 2;
+    align-self: flex-end;
+    top: 0;
+    right: 0;
+    margin: 4px 4px 0 0;
   }
 
   .reading .home {
     top: 4px;
-    left: 56px;
+    right: 56px;
   }
 
   .reading.menu,
@@ -537,10 +540,10 @@ svg.item-view {
 
   .reading .dots {
     position: static;
-    grid-area: 1 / 2;
-    justify-self: end;
+    grid-area: 1 / 1;
+    justify-self: start;
     align-self: center;
-    margin-right: 12px;
+    margin-left: 12px;
     gap: 6px;
   }
 
@@ -578,16 +581,20 @@ svg.item-view {
 
   .reading .gear {
     position: relative;
-    grid-area: 1 / 1;
+    grid-area: 1 / 3;
+    justify-self: end;
+    align-self: flex-end;
+    top: 0;
+    right: 0;
     width: 36px;
     height: 36px;
     font-size: 24px;
-    margin: 0 0 0 4px;
+    margin: 0 4px 0 0;
   }
 
   .reading .home {
     top: 0;
-    left: 56px;
+    right: 56px;
     width: 36px;
     height: 36px;
     padding: 6px;
@@ -608,10 +615,10 @@ svg.item-view {
 
   .reading .dots {
     position: static;
-    grid-area: 1 / 2 / 2 / 4;
-    justify-self: end;
+    grid-area: 1 / 1 / 2 / 3;
+    justify-self: start;
     align-self: center;
-    margin-right: 12px;
+    margin-left: 12px;
     gap: 8px;
   }
 
