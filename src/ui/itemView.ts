@@ -132,7 +132,7 @@ export function createItemView(
   };
   const onMove = (e: PointerEvent) => {
     const p = toView(e);
-    if (p) controller.move(e.pointerId, p.x);
+    if (p) controller.move(e.pointerId, p.x, p.y);
   };
   const onUp = (e: PointerEvent) => controller.up(e.pointerId);
   const onCancel = (e: PointerEvent) => controller.cancel(e.pointerId);

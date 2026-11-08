@@ -65,82 +65,62 @@ describe('mountReadingScreen', () => {
     delete (SVGSVGElement.prototype as unknown as Record<string, unknown>).setPointerCapture;
   });
 
-  const good = () => q('good').click();
+  const rate = (light: 'green' | 'yellow' | 'red') => q(light).click();
   const again = () => q('again').click();
   const text = () => q('item').textContent;
   const outcomes = () => onOutcome.mock.calls.map((c) => c[1]);
 
-  it('shows one item, ten empty dots, three try dots and both rating buttons', () => {
+  it('shows one item, ten empty dots, the traffic light and Nochmal', () => {
     expect(q('item').querySelectorAll('svg')).toHaveLength(1);
     expect(q('dots').children).toHaveLength(10);
-    expect(q('dots').querySelectorAll('.on')).toHaveLength(0);
-    expect(q('tries').children).toHaveLength(3);
-    expect(q('tries').querySelectorAll('.on')).toHaveLength(1);
-    expect(q('again').textContent).toBe('Nochmal');
-    expect(q('good').textContent).toBe('Gut gelesen');
-    expect(q('next')).toBeNull();
+    expect(q('dots').querySelectorAll('.green, .yellow, .red')).toHaveLength(0);
+    expect([q('red'), q('yellow'), q('green')].map((b) => [b.textContent, b.getAttribute('aria-label')])).toEqual([
+      ['Üben', 'Muss geübt werden'],
+      ['Geht so', 'Braucht noch etwas Übung'],
+      ['Gut', 'Gut gelesen'],
+    ]);
+    expect(q('again').getAttribute('aria-label')).toBe('Nochmal');
+    expect(q('tries')).toBeNull();
+    expect(q('good')).toBeNull();
     expect(q('done')).toBeNull();
   });
 
-  it('locks both buttons until the item is traced and ignores clicks meanwhile', () => {
-    for (const id of ['again', 'good']) {
-      expect(q(id).classList.contains('locked')).toBe(true);
-      expect(q(id).getAttribute('aria-disabled')).toBe('true');
-    }
-    const before = itemEl();
-    good();
-    again();
-    expect(itemEl()).toBe(before);
-    expect(onOutcome).not.toHaveBeenCalled();
-    complete();
-    for (const id of ['again', 'good']) {
+  it('rates right away, without tracing first', () => {
+    for (const id of ['again', 'red', 'yellow', 'green']) {
       expect(q(id).classList.contains('locked')).toBe(false);
       expect(q(id).hasAttribute('aria-disabled')).toBe(false);
     }
-  });
-
-  it('records a first-try read and moves on', () => {
     const id = itemId();
-    complete();
-    good();
+    rate('green');
     expect(onOutcome).toHaveBeenCalledWith(id, 'first');
-    expect(dot(0).classList.contains('on')).toBe(true);
-    expect(q('good').classList.contains('locked')).toBe(true);
-    expect(q('tries').querySelectorAll('.on')).toHaveLength(1);
+    expect(dot(0).className).toBe('dot green');
+    expect(itemId()).not.toBe(id);
   });
 
-  it('repeats the same item on Nochmal and records a later read', () => {
-    const id = itemId();
+  it('maps yellow to later and red to skipped', () => {
+    const first = itemId();
+    rate('yellow');
+    const second = itemId();
+    rate('red');
+    expect(onOutcome.mock.calls).toEqual([
+      [first, 'later'],
+      [second, 'skipped'],
+    ]);
+    expect(dot(0).className).toBe('dot yellow');
+    expect(dot(1).className).toBe('dot red');
+  });
+
+  it('restarts the same item on Nochmal as often as wanted without rating', () => {
     const first = text();
-    complete();
-    again();
-    expect(text()).toBe(first);
-    expect(q('tries').querySelectorAll('.on')).toHaveLength(2);
-    expect(q('good').classList.contains('locked')).toBe(true);
-    complete();
-    again();
-    expect(text()).toBe(first);
-    expect(q('tries').querySelectorAll('.on')).toHaveLength(3);
-    complete();
-    good();
-    expect(onOutcome).toHaveBeenCalledTimes(1);
-    expect(onOutcome).toHaveBeenCalledWith(id, 'later');
-    expect(dot(0).classList.contains('on')).toBe(true);
-  });
-
-  it('turns Nochmal into Überspringen on the third try', () => {
-    const id = itemId();
-    complete();
-    again();
-    expect(q('again').textContent).toBe('Nochmal');
-    complete();
-    again();
-    expect(q('again').textContent).toBe('Überspringen');
-    complete();
-    again();
-    expect(onOutcome).toHaveBeenCalledWith(id, 'skipped');
-    expect(dot(0).classList.contains('skipped')).toBe(true);
-    expect(q('again').textContent).toBe('Nochmal');
+    for (let k = 0; k < 5; k++) {
+      complete();
+      const before = itemEl();
+      again();
+      expect(text()).toBe(first);
+      expect(itemEl()).not.toBe(before);
+    }
+    expect(onOutcome).not.toHaveBeenCalled();
+    expect(dot(0).className).toBe('dot');
   });
 
   it('records nothing when leaving mid-word', () => {
@@ -154,38 +134,26 @@ describe('mountReadingScreen', () => {
     expect(onOutcome).not.toHaveBeenCalled();
   });
 
-  const finish = (pattern: ('good' | 'later' | 'skip')[]) => {
-    for (const step of pattern) {
-      complete();
-      if (step === 'good') good();
-      else if (step === 'later') {
-        again();
-        complete();
-        good();
-      } else {
-        again();
-        complete();
-        again();
-        complete();
-        again();
-      }
-    }
+  const finish = (pattern: ('green' | 'yellow' | 'red')[]) => {
+    for (const light of pattern) rate(light);
   };
 
   it('shows the score after ten tasks and restarts', () => {
-    finish(['good', 'good', 'later', ...Array(7).fill('skip')]);
+    finish(['green', 'green', 'yellow', ...Array(7).fill('red')]);
     expect(q('done').textContent).toContain('Geschafft!');
-    expect(q('score').textContent).toBe('3 von 10 gut gelesen');
+    expect(q('score').textContent).toBe('2 von 10 gut gelesen');
     expect(q('new-cards')).toBeNull();
     expect(q('item')).toBeNull();
     expect([...q('dots').children].map((d) => d.className)).toEqual([
-      ...Array(3).fill('dot on'),
-      ...Array(7).fill('dot skipped'),
+      'dot green',
+      'dot green',
+      'dot yellow',
+      ...Array(7).fill('dot red'),
     ]);
     expect(outcomes()).toEqual(['first', 'first', 'later', ...Array(7).fill('skipped')]);
     q('restart').click();
     expect(q('done')).toBeNull();
-    expect(q('dots').querySelectorAll('.on, .skipped')).toHaveLength(0);
+    expect(q('dots').querySelectorAll('.green, .yellow, .red')).toHaveLength(0);
     expect(q('item').querySelectorAll('svg')).toHaveLength(1);
   });
 
@@ -194,7 +162,7 @@ describe('mountReadingScreen', () => {
     let n = 0;
     onOutcome.mockImplementation(() => ++n <= 2);
     unmount = mountReadingScreen(root, { pool: pool(), onOpenParent, onOutcome, name: 'Lena', rng: mulberry32(1) });
-    finish(Array(10).fill('good'));
+    finish(Array(10).fill('green'));
     expect(q('done').textContent).toContain('Geschafft, Lena!');
     expect(q('new-cards')!.textContent).toBe('2 neue Wörter im Album!');
   });
@@ -204,7 +172,7 @@ describe('mountReadingScreen', () => {
     let n = 0;
     onOutcome.mockImplementation(() => ++n === 1);
     unmount = mountReadingScreen(root, { pool: pool(), onOpenParent, onOutcome, rng: mulberry32(1) });
-    finish(Array(10).fill('good'));
+    finish(Array(10).fill('green'));
     expect(q('new-cards')!.textContent).toBe('1 neues Wort im Album!');
   });
 
@@ -302,15 +270,13 @@ describe('mountReadingScreen', () => {
       expect(itemEl().hasAttribute('width')).toBe(false);
     });
 
-    it('rebuilds the current item with the new fit on resize and relocks it', () => {
+    it('rebuilds the current item with the new fit on resize', () => {
       complete();
-      expect(q('good').classList.contains('locked')).toBe(false);
       size = { w: 343, h: 660 };
       const before = itemEl();
       window.dispatchEvent(new Event('resize'));
       expect(itemEl()).not.toBe(before);
       expect(itemEl().hasAttribute('width')).toBe(true);
-      expect(q('good').classList.contains('locked')).toBe(true);
       const again = itemEl();
       window.dispatchEvent(new Event('resize'));
       expect(itemEl()).toBe(again);

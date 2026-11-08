@@ -7,7 +7,6 @@ import { createItemView } from './itemView';
 
 const ROUND_SIZE = 10;
 const PARENT_PRESS_MS = 3000;
-const MAX_TRIES = 3;
 const NOTICE_MS = 2500;
 const RESIZE_TOLERANCE = 0.05;
 
@@ -17,7 +16,14 @@ function measure(el: Element): { width: number; height: number } | undefined {
     : undefined;
 }
 
-type Result = 'read' | 'skipped';
+type Light = 'red' | 'yellow' | 'green';
+
+/** Traffic-light rating: visible label, full label, and what it means for progress. */
+const LIGHTS: { light: Light; text: string; label: string; outcome: Outcome }[] = [
+  { light: 'red', text: 'Üben', label: 'Muss geübt werden', outcome: 'skipped' },
+  { light: 'yellow', text: 'Geht so', label: 'Braucht noch etwas Übung', outcome: 'later' },
+  { light: 'green', text: 'Gut', label: 'Gut gelesen', outcome: 'first' },
+];
 
 const newCardsText = (n: number): string =>
   n === 1 ? '1 neues Wort im Album!' : `${n} neue Wörter im Album!`;
@@ -91,44 +97,29 @@ export function mountReadingScreen(
 
   const dots = h('div', 'dots', 'dots');
   const dotEls = Array.from({ length: ROUND_SIZE }, () => dots.appendChild(h('span', null, 'dot')));
-  const tries = h('div', 'tries', 'tries');
-  const tryEls = Array.from({ length: MAX_TRIES }, () => tries.appendChild(h('span', null, 'try')));
   const stage = h('div', null, 'stage');
-  const again = h('button', 'again', 'rate again');
-  const good = h('button', 'good', 'rate good', 'Gut gelesen');
+  const again = h('button', 'again', 'rate again', '↻');
   again.type = 'button';
-  good.type = 'button';
+  again.setAttribute('aria-label', 'Nochmal');
   const rating = h('div', null, 'rating');
-  rating.append(again, good);
-  screen.append(dots, tries, stage, rating);
+  rating.appendChild(again);
+  for (const { light, text, label, outcome } of LIGHTS) {
+    const b = h('button', light, `rate ${light}`, text);
+    b.type = 'button';
+    b.setAttribute('aria-label', label);
+    b.addEventListener('click', () => finish(outcome, light));
+    rating.appendChild(b);
+  }
+  screen.append(dots, stage, rating);
 
   let round: Item[] = [];
   let index = 0;
-  let attempt = 1;
-  let results: Result[] = [];
+  let results: Light[] = [];
   let newCards = 0;
 
   const showDots = () =>
     dotEls.forEach((d, i) => {
-      d.classList.toggle('on', results[i] === 'read');
-      d.classList.toggle('skipped', results[i] === 'skipped');
-    });
-  const showTries = () => {
-    tryEls.forEach((t, i) => t.classList.toggle('on', i < attempt));
-    again.textContent = attempt >= MAX_TRIES ? 'Überspringen' : 'Nochmal';
-  };
-
-  const buttons = [again, good];
-  const isLocked = () => good.classList.contains('locked');
-  const lock = () =>
-    buttons.forEach((b) => {
-      b.classList.add('locked');
-      b.setAttribute('aria-disabled', 'true');
-    });
-  const unlock = () =>
-    buttons.forEach((b) => {
-      b.classList.remove('locked');
-      b.removeAttribute('aria-disabled');
+      d.className = results[i] ? `dot ${results[i]}` : 'dot';
     });
 
   function clearStage(): void {
@@ -140,9 +131,6 @@ export function mountReadingScreen(
   function showItem(): void {
     clearStage();
     rating.hidden = false;
-    tries.hidden = false;
-    showTries();
-    lock();
     const holder = h('div', 'item', 'item');
     holder.dataset.itemId = round[index].id;
     stage.appendChild(holder);
@@ -153,7 +141,7 @@ export function mountReadingScreen(
       const mode = chooseLayoutMode(syl, fit.width, fit.height);
       builtFit = { mode, scale: fitScale(layoutItem(syl, mode), fit.width, fit.height) };
     }
-    view = createItemView(round[index], unlock, fit);
+    view = createItemView(round[index], () => {}, fit);
     holder.appendChild(view.el);
   }
 
@@ -183,12 +171,11 @@ export function mountReadingScreen(
   function showDone(): void {
     clearStage();
     rating.hidden = true;
-    tries.hidden = true;
     const done = h('div', 'done', 'done');
     const restart = h('button', 'restart', 'restart', 'Nochmal');
     restart.type = 'button';
     restart.addEventListener('click', startRound);
-    const read = results.filter((r) => r === 'read').length;
+    const read = results.filter((r) => r === 'green').length;
     done.append(
       h('p', null, 'done-title', deps.name ? `Geschafft, ${deps.name}!` : 'Geschafft!'),
       h('p', 'score', 'score', `${read} von ${ROUND_SIZE} gut gelesen`),
@@ -201,36 +188,23 @@ export function mountReadingScreen(
   function startRound(): void {
     round = buildRound(deps.pool, deps.rng, ROUND_SIZE, deps.weight);
     index = 0;
-    attempt = 1;
     results = [];
     newCards = 0;
     showDots();
     showItem();
   }
 
-  function finish(outcome: Outcome): void {
+  function finish(outcome: Outcome, light: Light): void {
+    if (index >= round.length) return;
     if (deps.onOutcome?.(round[index].id, outcome)) newCards++;
-    results[index] = outcome === 'skipped' ? 'skipped' : 'read';
+    results[index] = light;
     index++;
-    attempt = 1;
     showDots();
     if (index >= round.length) showDone();
     else showItem();
   }
 
-  good.addEventListener('click', () => {
-    if (isLocked()) return;
-    finish(attempt === 1 ? 'first' : 'later');
-  });
-  again.addEventListener('click', () => {
-    if (isLocked()) return;
-    if (attempt >= MAX_TRIES) {
-      finish('skipped');
-      return;
-    }
-    attempt++;
-    showItem();
-  });
+  again.addEventListener('click', showItem);
 
   startRound();
   return unmount;

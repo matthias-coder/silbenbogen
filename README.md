@@ -29,7 +29,7 @@ Adresse der App in Chrome öffnen (Link oder QR-Code oben), dann Menü → „Ap
 
 ## Bedienung
 
-Die App startet im Auswahlmenü mit allen sechs Stufen und „Alles gemischt“. Beim Lesen zieht das Kind die Silbenbögen, der Erwachsene tippt danach „Gut gelesen“ oder „Nochmal“ (höchstens drei Versuche, im dritten wird daraus „Überspringen“). Schwierige Wörter kommen danach öfter dran, sichere seltener. Wörter, die dreimal beim ersten Versuch gut gelesen wurden, landen im Sammelalbum („Meine Wörter“).
+Die App startet im Auswahlmenü mit allen sechs Stufen und „Alles gemischt“. Beim Lesen zieht das Kind die Silbenbögen, vor und zurück, so oft es mag. „↻“ setzt das Wort zurück. Der Erwachsene bewertet jederzeit mit der Ampel: Grün „Gut“, Gelb „Geht so“ (braucht noch etwas Übung), Rot „Üben“ (muss geübt werden). Rote und gelbe Wörter kommen danach öfter dran, grüne seltener. Wörter, die dreimal grün waren (ohne Rot dazwischen), landen im Sammelalbum („Meine Wörter“).
 
 ## Elternbereich
 
